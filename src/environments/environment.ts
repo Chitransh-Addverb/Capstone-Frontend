@@ -1,0 +1,4 @@
+export const environment = {
+  production: false,
+  apiBase: 'http://172.19.8.200:8080/api',
+};

@@ -1,0 +1,119 @@
+<div class="designer-shell">
+
+  <!-- Header -->
+  <div class="designer-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="1" width="6" height="6" rx="1.5"/>
+          <rect x="11" y="1" width="6" height="6" rx="1.5"/>
+          <rect x="6" y="11" width="6" height="6" rx="1.5"/>
+          <path d="M4 7v2.5a2.5 2.5 0 002.5 2.5h1M14 7v1a2.5 2.5 0 01-2.5 2.5H11"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <div class="header-title-row">
+          <h1 class="header-title">
+            {{ isEditMode() ? 'Edit Workflow' : 'Workflow Designer' }}
+          </h1>
+          @if (isEditMode()) {
+            <span class="edit-badge">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M7 1l2 2-5 5H2V6l5-5z"/>
+              </svg>
+              Editing · {{ editKey() }} · v{{ nextVersion() - 1 }} → v{{ nextVersion() }}
+            </span>
+          }
+        </div>
+        <p class="header-subtitle">BPMN 2.0 visual workflow editor</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" (click)="resetDiagram()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 6.5A5.5 5.5 0 1012 6.5M1 6.5V2.5M1 6.5H5"/>
+        </svg>
+        Reset
+      </button>
+      <button class="btn btn-ghost btn-sm" (click)="zoomFit()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 5V1h4M12 5V1H8M1 8v4h4M12 8v4H8"/>
+        </svg>
+        Fit
+      </button>
+      <button class="btn btn-secondary btn-sm" (click)="exportXml()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M6.5 1v8M3 6l3.5 3.5L10 6M1 11h11"/>
+        </svg>
+        Export XML
+      </button>
+      <button class="btn btn-primary btn-sm" (click)="openDeployModal()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M10.5 6.5l-7-4v8l7-4z"/>
+        </svg>
+        {{ isEditMode() ? 'Deploy v' + nextVersion() : 'Deploy' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div class="canvas-container">
+    @if (loading()) {
+      <div class="canvas-loading">
+        <div class="loading-spinner"></div>
+        <span>Initializing BPMN Engine...</span>
+      </div>
+    }
+    <div #bpmnCanvas class="bpmn-canvas" [class.visible]="!loading()"></div>
+    @if (!loading()) {
+      <div class="canvas-watermark">BPMN 2.0</div>
+    }
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <div class="status-left">
+      <span class="status-item">
+        <span class="status-indicator online"></span>
+        Ready
+      </span>
+      <span class="status-divider">·</span>
+      <span class="status-item">{{ elementCount() }} elements</span>
+      @if (isEditMode()) {
+        <span class="status-divider">·</span>
+        <span class="status-item edit-mode-indicator">
+          Edit Mode — {{ editKey() }}
+        </span>
+      }
+    </div>
+    <div class="status-right">
+      <span class="status-item text-mono">BPMN 2.0 Subset</span>
+      <span class="status-divider">·</span>
+      <span class="status-item">bpmn-js v18</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Deploy Modal -->
+<app-deploy-modal
+  [visible]="showDeployModal()"
+  [bpmnXml]="currentXml()"
+  [editMode]="isEditMode()"
+  [existingKey]="editKey()"
+  [existingDescription]="editDescription()"
+  [nextVersion]="nextVersion()"
+  (deploy)="onDeploy($event)"
+  (cancel)="onDeployCancel()"
+/>
+
+
+
+
+

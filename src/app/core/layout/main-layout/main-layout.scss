@@ -1,0 +1,24 @@
+.layout-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--surface-ground);
+}
+
+.main-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  margin-top: var(--topbar-height);
+  min-height: calc(100vh - var(--topbar-height));
+  transition: margin-left var(--transition-slow);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.content-wrapper {
+  padding: 28px;
+  min-height: 100%;
+}
+
+
+
+

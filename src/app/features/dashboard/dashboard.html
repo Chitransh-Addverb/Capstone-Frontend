@@ -1,0 +1,87 @@
+<div class="dashboard">
+
+  <!-- Welcome -->
+  <div class="welcome-section">
+    <div class="welcome-text">
+      <h1 class="text-display">Workflow Orchestration</h1>
+      <p class="welcome-sub">Monitor and manage your BPMN workflows from one place.</p>
+    </div>
+    <div class="welcome-actions">
+      <a routerLink="/designer" class="btn btn-primary">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M7 1v12M1 7h12"/>
+        </svg>
+        New Workflow
+      </a>
+      <a routerLink="/monitoring" class="btn btn-ghost">View Monitoring</a>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card card">
+      <div class="stat-header">
+        <span class="stat-icon" style="background:#4f46e515; color:#4f46e5">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="1" width="5" height="5" rx="1"/><rect x="5.5" y="10" width="5" height="5" rx="1"/><path d="M3.5 6v2a2 2 0 002 2h1M10.5 6v1a2 2 0 01-2 2H9"/></svg>
+        </span>
+        <span class="badge badge-neutral">Total</span>
+      </div>
+      <div class="stat-value">{{ activeWorkflows() }}</div>
+      <div class="stat-label">Active Workflows</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-header">
+        <span class="stat-icon" style="background:#05966915; color:#059669">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        </span>
+        <span class="badge badge-success">Live</span>
+      </div>
+      <div class="stat-value">0</div>
+      <div class="stat-label">Instances Running</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-header">
+        <span class="stat-icon" style="background:#d9770615; color:#d97706">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 5V3a2 2 0 012-2h2M11 1h2a2 2 0 012 2v2M15 11v2a2 2 0 01-2 2h-2M5 15H3a2 2 0 01-2-2v-2"/><path d="M5 8h6"/></svg>
+        </span>
+        <span class="badge badge-neutral">Setup</span>
+      </div>
+      <div class="stat-value">0</div>
+      <div class="stat-label">Scanners Mapped</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-header">
+        <span class="stat-icon" style="background:#0284c715; color:#0284c7">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 8l3 3 7-7"/><circle cx="8" cy="8" r="7"/></svg>
+        </span>
+        <span class="badge badge-neutral">--</span>
+      </div>
+      <div class="stat-value">{{ totalVersions() }}</div>
+      <div class="stat-label">Total Versions</div>
+    </div>
+  </div>
+
+  <!-- Quick Access -->
+  <div class="quick-section">
+    <h2 class="section-title">Quick Access</h2>
+    <div class="quick-grid">
+      @for (action of quickActions; track action.label) {
+        <a [routerLink]="action.route" class="quick-card card">
+          <div class="quick-icon" [innerHTML]="action.icon"></div>
+          <div class="quick-info">
+            <span class="quick-label">{{ action.label }}</span>
+            <span class="quick-desc">{{ action.desc }}</span>
+          </div>
+          <svg class="quick-arrow" width="14" height="14" viewBox="0 0 14 14"
+               fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M2 7h10M8 3l4 4-4 4"/>
+          </svg>
+        </a>
+      }
+    </div>
+  </div>
+
+</div>
+
+

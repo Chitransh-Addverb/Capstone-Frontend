@@ -1,0 +1,84 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+
+  <!-- Logo -->
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <rect width="10" height="10" rx="3" fill="var(--accent-primary)" opacity="0.9"/>
+        <rect x="12" width="10" height="10" rx="3" fill="var(--accent-primary)" opacity="0.5"/>
+        <rect y="12" width="10" height="10" rx="3" fill="var(--accent-primary)" opacity="0.5"/>
+        <rect x="12" y="12" width="10" height="10" rx="3" fill="var(--accent-primary)" opacity="0.25"/>
+      </svg>
+    </div>
+    <div class="logo-text" [class.hidden]="collapsed()">
+      <span class="logo-name">WorkFlow</span>
+      <span class="logo-sub">Orchestrator</span>
+    </div>
+  </div>
+
+  <!-- Collapse Toggle -->
+  <button
+    class="collapse-btn"
+    (click)="toggleCollapse()"
+    [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+  >
+    <svg
+      width="14" height="14" viewBox="0 0 14 14" fill="none"
+      [style.transform]="collapsed() ? 'rotate(180deg)' : 'rotate(0deg)'"
+      style="transition: transform 250ms ease"
+    >
+      <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <!-- Navigation -->
+  <nav class="sidebar-nav">
+    @for (section of navSections(); track section.title) {
+      <div class="nav-section">
+        @if (!collapsed()) {
+          <span class="nav-section-label">{{ section.title }}</span>
+        }
+        @for (item of section.items; track item.route) {
+          <a
+            class="nav-item"
+            [routerLink]="item.route"
+            routerLinkActive="active"
+            [attr.title]="collapsed() ? item.label : null"
+          >
+            <span class="nav-item-icon" [innerHTML]="icons[item.icon]"></span>
+
+            @if (!collapsed()) {
+              <span class="nav-item-label">{{ item.label }}</span>
+              @if (item.badge) {
+                <span class="badge badge-{{ item.badgeType }} nav-badge">
+                  {{ item.badge }}
+                </span>
+              }
+            }
+
+            @if (collapsed() && item.badge) {
+              <span class="nav-badge-dot"></span>
+            }
+          </a>
+        }
+      </div>
+    }
+  </nav>
+
+  <!-- Footer -->
+  <div class="sidebar-footer">
+    <div class="system-status" [class.collapsed]="collapsed()">
+      <span class="status-dot"></span>
+      @if (!collapsed()) {
+        <div class="status-info">
+          <span class="status-label">System Online</span>
+          <span class="status-sub">All services running</span>
+        </div>
+      }
+    </div>
+  </div>
+
+</aside>
+
+
+
