@@ -62,18 +62,33 @@
     </div>
   </div>
 
-  <!-- Canvas -->
-  <div class="canvas-container">
-    @if (loading()) {
-      <div class="canvas-loading">
-        <div class="loading-spinner"></div>
-        <span>Initializing BPMN Engine...</span>
-      </div>
-    }
-    <div #bpmnCanvas class="bpmn-canvas" [class.visible]="!loading()"></div>
-    @if (!loading()) {
-      <div class="canvas-watermark">BPMN 2.0</div>
-    }
+  <!-- Canvas + Properties Panel row -->
+  <div class="canvas-with-panel">
+
+    <!-- Canvas -->
+    <div class="canvas-container">
+      @if (loading()) {
+        <div class="canvas-loading">
+          <div class="loading-spinner"></div>
+          <span>Initializing BPMN Engine...</span>
+        </div>
+      }
+      <div #bpmnCanvas class="bpmn-canvas" [class.visible]="!loading()"></div>
+      @if (!loading()) {
+        <div class="canvas-watermark">BPMN 2.0</div>
+      }
+    </div>
+
+    <!-- Properties Panel -->
+    <app-properties-panel
+      [class.panel-open]="selectedElement() !== null"
+      [element]="selectedElement()"
+      (conditionSaved)="onConditionSaved($event)"
+      (taskNameSaved)="onTaskNameSaved($event)"
+      (nameSaved)="onNameSaved($event)"
+      (deselected)="onPanelDeselected()"
+    />
+
   </div>
 
   <!-- Status bar -->
@@ -91,6 +106,13 @@
           Edit Mode — {{ editKey() }}
         </span>
       }
+      @if (selectedElement()) {
+        <span class="status-divider">·</span>
+        <span class="status-item">
+          <span style="color: var(--accent-primary)">●</span>
+          {{ selectedElement()?.type?.replace('bpmn:', '') }} selected
+        </span>
+      }
     </div>
     <div class="status-right">
       <span class="status-item text-mono">BPMN 2.0 Subset</span>
@@ -104,13 +126,21 @@
 <!-- Deploy Modal -->
 <app-deploy-modal
   [visible]="showDeployModal()"
-  [bpmnXml]="currentXml()"
+  [bpmn_xml]="currentXml()"
   [editMode]="isEditMode()"
   [existingKey]="editKey()"
   [existingDescription]="editDescription()"
   [nextVersion]="nextVersion()"
   (deploy)="onDeploy($event)"
   (cancel)="onDeployCancel()"
+/>
+
+<!-- Validation Modal -->
+<app-validation-modal
+  [visible]="showValidationModal()"
+  [errors]="validationErrors()"
+  [warnings]="validationWarnings()"
+  (close)="onValidationModalClose()"
 />
 
 

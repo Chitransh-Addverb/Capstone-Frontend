@@ -8,11 +8,35 @@ import { DeployModal, DeployFormData } from '../../shared/components/deploy-moda
 import { WorkflowApiService } from '../../core/api/workflow-api.service';
 import { WorkflowDefinitionService } from '../../core/services/workflow-definition.service';
 import { ToastService } from '../../core/services/toast.service';
+import { RestrictedPaletteProvider } from './providers/restricted-palette.provider';
+import { RestrictedContextPadProvider } from './providers/restricted-context-pad.provider';
+import { GatewayFlowLimitProvider } from './providers/gateway-flow-limit.provider';
+import { PropertiesPanel, ConditionSaveEvent, TaskNameSaveEvent, NameSaveEvent } from './properties-panel/properties-panel';
+import { ValidationModal } from './validation-modal/validation-modal';
+import { BpmnCanvasValidator, ValidationError } from './validators/bpmn-canvas.validator';
+
+/**
+ * A no-op module that overrides bpmn-js's built-in replaceMenuProvider.
+ * Injecting this as 'replaceMenuProvider' with an empty getPopupMenuEntries
+ * prevents the "Change element" wrench popup from ever appearing.
+ */
+class DisabledReplaceMenuProvider {
+  static $inject = ['popupMenu'];
+
+  constructor(popupMenu: any) {
+    popupMenu.registerProvider('bpmn-replace', 1500, this);
+  }
+
+  getPopupMenuEntries() {
+    // Return empty — no replace options for any element type
+    return () => ({});
+  }
+}
 
 @Component({
   selector: 'app-workflow-designer',
   standalone: true,
-  imports: [CommonModule, DeployModal],
+  imports: [CommonModule, DeployModal, PropertiesPanel, ValidationModal],
   templateUrl: './workflow-designer.html',
   styleUrl: './workflow-designer.scss',
 })
@@ -20,97 +44,32 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
   @ViewChild('bpmnCanvas') canvasRef!: ElementRef<HTMLDivElement>;
   @ViewChild(DeployModal) deployModalRef!: DeployModal;
 
-  loading = signal(true);
-  elementCount = signal(0);
+  loading         = signal(true);
+  elementCount    = signal(0);
   showDeployModal = signal(false);
-  currentXml = signal('');
+  currentXml      = signal('');
 
-  // Edit mode state
-  isEditMode = signal(false);
-  editKey = signal('');
+  isEditMode      = signal(false);
+  editKey         = signal('');
   editDescription = signal('');
-  nextVersion = signal(1);
+  nextVersion     = signal(1);
 
-  private modeler: any = null;
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  private workflowApi = inject(WorkflowApiService);
+  selectedElement = signal<any>(null);
+
+  showValidationModal = signal(false);
+  validationErrors    = signal<ValidationError[]>([]);
+  validationWarnings  = signal<ValidationError[]>([]);
+
+  private modeler:   any = null;
+  private validator      = new BpmnCanvasValidator();
+
+  private router        = inject(Router);
+  private route         = inject(ActivatedRoute);
+  private workflowApi   = inject(WorkflowApiService);
   private workflowStore = inject(WorkflowDefinitionService);
-  private toast = inject(ToastService);
-
-  private readonly defaultDiagram = `<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions
-  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
-  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
-  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
-  targetNamespace="http://bpmn.io/schema/bpmn"
-  id="Definitions_1">
-  <bpmn:process id="Process_1" isExecutable="true">
-    <bpmn:startEvent id="StartEvent_1" name="Scan Received">
-      <bpmn:outgoing>Flow_1</bpmn:outgoing>
-    </bpmn:startEvent>
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_1"/>
-    <bpmn:serviceTask id="Task_1" name="Container Validation">
-      <bpmn:incoming>Flow_1</bpmn:incoming>
-      <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="Gateway_1"/>
-    <bpmn:exclusiveGateway id="Gateway_1" name="Valid?">
-      <bpmn:incoming>Flow_2</bpmn:incoming>
-      <bpmn:outgoing>Flow_3</bpmn:outgoing>
-      <bpmn:outgoing>Flow_4</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:sequenceFlow id="Flow_3" name="Yes" sourceRef="Gateway_1" targetRef="EndEvent_1"/>
-    <bpmn:sequenceFlow id="Flow_4" name="No" sourceRef="Gateway_1" targetRef="EndEvent_2"/>
-    <bpmn:endEvent id="EndEvent_1" name="Lane 1 — Valid">
-      <bpmn:incoming>Flow_3</bpmn:incoming>
-    </bpmn:endEvent>
-    <bpmn:endEvent id="EndEvent_2" name="Lane 2 — Invalid">
-      <bpmn:incoming>Flow_4</bpmn:incoming>
-    </bpmn:endEvent>
-  </bpmn:process>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
-      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
-        <dc:Bounds x="152" y="202" width="36" height="36"/>
-        <bpmndi:BPMNLabel><dc:Bounds x="130" y="245" width="80" height="14"/></bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_1_di" bpmnElement="Task_1">
-        <dc:Bounds x="250" y="180" width="120" height="80"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_1_di" bpmnElement="Gateway_1" isMarkerVisible="true">
-        <dc:Bounds x="435" y="195" width="50" height="50"/>
-        <bpmndi:BPMNLabel><dc:Bounds x="446" y="252" width="29" height="14"/></bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
-        <dc:Bounds x="562" y="152" width="36" height="36"/>
-        <bpmndi:BPMNLabel><dc:Bounds x="538" y="195" width="84" height="14"/></bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_2_di" bpmnElement="EndEvent_2">
-        <dc:Bounds x="562" y="252" width="36" height="36"/>
-        <bpmndi:BPMNLabel><dc:Bounds x="536" y="295" width="88" height="14"/></bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
-        <di:waypoint x="188" y="220"/><di:waypoint x="250" y="220"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
-        <di:waypoint x="370" y="220"/><di:waypoint x="435" y="220"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
-        <di:waypoint x="460" y="195"/><di:waypoint x="460" y="170"/><di:waypoint x="562" y="170"/>
-        <bpmndi:BPMNLabel><dc:Bounds x="503" y="152" width="18" height="14"/></bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
-        <di:waypoint x="460" y="245"/><di:waypoint x="460" y="270"/><di:waypoint x="562" y="270"/>
-        <bpmndi:BPMNLabel><dc:Bounds x="503" y="253" width="15" height="14"/></bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-    </bpmndi:BPMNPlane>
-  </bpmndi:BPMNDiagram>
-</bpmn:definitions>`;
+  private toast         = inject(ToastService);
 
   ngOnInit(): void {
-    // Check if edit mode — route: /designer?key=scanner-1-workflow
     const key = this.route.snapshot.queryParamMap.get('key');
     if (key) {
       const existing = this.workflowStore.getLatestByKey(key);
@@ -130,14 +89,35 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
   private async initModeler(): Promise<void> {
     try {
       const BpmnModeler = (await import('bpmn-js/lib/Modeler')).default;
+
       this.modeler = new BpmnModeler({
         container: this.canvasRef.nativeElement,
+        additionalModules: [
+          // Restrict palette to MVP elements only
+          {
+            __init__: ['restrictedPaletteProvider'],
+            restrictedPaletteProvider: ['type', RestrictedPaletteProvider],
+          },
+          // Remove "Change element" from context pad entries
+          {
+            __init__: ['restrictedContextPadProvider'],
+            restrictedContextPadProvider: ['type', RestrictedContextPadProvider],
+          },
+          // ── KEY FIX: override the replaceMenuProvider at the popup level ──
+          // This kills the wrench popup itself, not just the context pad button.
+          // Without this, bpmn-js re-adds the entry because the popup provider
+          // is registered independently of the context pad.
+          {
+            __init__: ['disabledReplaceMenuProvider'],
+            disabledReplaceMenuProvider: ['type', DisabledReplaceMenuProvider],
+          },
+        ],
       });
 
       if (this.isEditMode()) {
         const existing = this.workflowStore.getLatestByKey(this.editKey());
-        if (existing?.bpmnXml) {
-          await this.modeler.importXML(existing.bpmnXml);
+        if (existing?.bpmn_xml) {
+          await this.modeler.importXML(existing.bpmn_xml);
         } else {
           await this.modeler.createDiagram();
         }
@@ -149,9 +129,31 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
       this.loading.set(false);
 
       const elementRegistry = this.modeler.get('elementRegistry');
-      this.elementCount.set(elementRegistry.size - 1);
+      this.elementCount.set(Math.max(0, elementRegistry.size - 1));
       this.modeler.get('eventBus').on('elements.changed', () => {
-        this.elementCount.set(elementRegistry.size - 1);
+        this.elementCount.set(Math.max(0, elementRegistry.size - 1));
+      });
+
+      const selection = this.modeler.get('selection');
+      this.modeler.get('eventBus').on('selection.changed', (event: any) => {
+        const selected = event.newSelection;
+        if (selected && selected.length === 1) {
+          const el = selected[0];
+          const editableTypes = [
+            'bpmn:StartEvent',
+            'bpmn:EndEvent',
+            'bpmn:ServiceTask',
+            'bpmn:ExclusiveGateway',
+            'bpmn:SequenceFlow',
+          ];
+          if (editableTypes.includes(el.type)) {
+            this.selectedElement.set(el);
+          } else {
+            this.selectedElement.set(null);
+          }
+        } else {
+          this.selectedElement.set(null);
+        }
       });
 
     } catch (err) {
@@ -160,8 +162,87 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
     }
   }
 
+  onConditionSaved(event: ConditionSaveEvent): void {
+    if (!this.modeler) return;
+    const elementRegistry = this.modeler.get('elementRegistry');
+    const modeling = this.modeler.get('modeling');
+    const moddle = this.modeler.get('moddle');
+
+    const element = elementRegistry.get(event.elementId);
+    if (!element) return;
+
+    const conditionExpression = moddle.create('bpmn:FormalExpression', {
+      body: event.condition,
+    });
+
+    modeling.updateProperties(element, {
+      conditionExpression,
+      name: event.label || undefined,
+    });
+
+    this.toast.success('Condition saved', `Flow condition updated.`);
+    this.refreshSelectedIfGateway(element);
+  }
+
+  onTaskNameSaved(event: TaskNameSaveEvent): void {
+    if (!this.modeler) return;
+    const elementRegistry = this.modeler.get('elementRegistry');
+    const modeling = this.modeler.get('modeling');
+
+    const element = elementRegistry.get(event.elementId);
+    if (!element) return;
+
+    modeling.updateProperties(element, { name: event.handlerName });
+    this.toast.success('Service Task saved', `Handler: ${event.handlerName}`);
+  }
+
+  onNameSaved(event: NameSaveEvent): void {
+    if (!this.modeler) return;
+    const elementRegistry = this.modeler.get('elementRegistry');
+    const modeling = this.modeler.get('modeling');
+
+    const element = elementRegistry.get(event.elementId);
+    if (!element) return;
+
+    modeling.updateProperties(element, { name: event.name });
+    this.toast.success('Saved', `Label updated.`);
+  }
+
+  onPanelDeselected(): void {
+    if (!this.modeler) return;
+    const selection = this.modeler.get('selection');
+    selection.select([]);
+    this.selectedElement.set(null);
+  }
+
+  private refreshSelectedIfGateway(changedFlowElement: any): void {
+    const currentSelected = this.selectedElement();
+    if (!currentSelected) return;
+    if (currentSelected.type === 'bpmn:ExclusiveGateway') {
+      this.selectedElement.set(null);
+      setTimeout(() => this.selectedElement.set(currentSelected), 0);
+    }
+  }
+
   async openDeployModal(): Promise<void> {
     if (!this.modeler) return;
+
+    const result = this.validator.validate(this.modeler);
+
+    if (!result.valid) {
+      this.validationErrors.set(result.errors);
+      this.validationWarnings.set(result.warnings);
+      this.showValidationModal.set(true);
+      return;
+    }
+
+    if (result.warnings.length > 0) {
+      this.toast.warning(
+        `${result.warnings.length} warning(s)`,
+        'Workflow has warnings but can still be deployed.'
+      );
+    }
+
     try {
       const { xml } = await this.modeler.saveXML({ format: true });
       this.currentXml.set(xml);
@@ -173,52 +254,46 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
 
   onDeploy(data: DeployFormData): void {
     this.workflowApi.deploy({
-      workflowKey: data.workflowKey,
-      bpmnXml: this.currentXml(),
+      workflow_key: data.workflow_key,
+      bpmn_xml: this.currentXml(),
       description: data.description ?? '',
     }).subscribe({
       next: (res) => {
-        // Save to frontend version store
         const saved = this.workflowStore.saveVersion({
-          workflowKey: data.workflowKey,
+          workflow_key: data.workflow_key,
           description: data.description,
-          bpmnXml: this.currentXml(),
+          bpmn_xml: this.currentXml(),
         });
 
         this.toast.success(
           this.isEditMode() ? 'Workflow updated!' : 'Workflow deployed!',
-          `Key: ${res.data.workflowKey} · Version: v${saved.version}`
+          `Key: ${res.data.workflow_key} · Version: v${saved.version}`
         );
 
         this.showDeployModal.set(false);
         this.router.navigate(['/definitions']);
       },
       error: (err) => {
-        this.toast.error(
-          'Deploy failed',
-          err.message || 'Could not reach the backend.'
-        );
+        this.toast.error('Deploy failed', err.message || 'Could not reach the backend.');
         this.deployModalRef?.resetDeploying();
       },
     });
   }
 
-  onDeployCancel(): void {
-    this.showDeployModal.set(false);
-  }
+  onDeployCancel(): void { this.showDeployModal.set(false); }
+  onValidationModalClose(): void { this.showValidationModal.set(false); }
 
   async resetDiagram(): Promise<void> {
     if (!this.modeler) return;
+    this.selectedElement.set(null);
 
     if (this.isEditMode()) {
-      // Reset to last saved version
       const existing = this.workflowStore.getLatestByKey(this.editKey());
-      if (existing?.bpmnXml) {
-        await this.modeler.importXML(existing.bpmnXml);
+      if (existing?.bpmn_xml) {
+        await this.modeler.importXML(existing.bpmn_xml);
         this.modeler.get('canvas').zoom('fit-viewport');
       }
     } else {
-      // Clear canvas completely for new workflow
       await this.modeler.createDiagram();
       this.modeler.get('canvas').zoom('fit-viewport');
     }
@@ -247,5 +322,8 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
     this.modeler?.destroy();
   }
 }
+
+
+
 
 

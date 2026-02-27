@@ -69,7 +69,7 @@
                 <rect x="2" y="5" width="8" height="6" rx="1"/>
                 <path d="M4 5V3.5a2 2 0 014 0V5"/>
               </svg>
-              <span>{{ form.workflowKey }}</span>
+              <span>{{ form.workflow_key }}</span>
             </div>
             <span class="form-hint">Key is locked for updates — same key, new version</span>
           } @else {
@@ -78,7 +78,7 @@
               [class.form-input-error]="keyError()"
               type="text"
               placeholder="e.g. scanner-1-workflow"
-              [value]="form.workflowKey"
+              [value]="form.workflow_key"
               (input)="onKeyChange($any($event.target).value)"
               [disabled]="deploying()"
             />
@@ -123,7 +123,7 @@
             </svg>
             <span>BPMN XML ready</span>
           </div>
-          <span class="xml-size">{{ bpmnXml.length | number }} chars</span>
+          <span class="xml-size">{{ bpmn_xml.length | number }} chars</span>
         </div>
 
         <!-- Payload preview -->
@@ -136,12 +136,12 @@
             POST /api/workflow/deploy
           </div>
           <div class="payload-body">
-            <span class="payload-key">workflowKey:</span>
-            <span class="payload-val">{{ form.workflowKey || '—' }}</span>
+            <span class="payload-key">workflow_key:</span>
+            <span class="payload-val">{{ form.workflow_key || '—' }}</span>
             <span class="payload-key">description:</span>
             <span class="payload-val">{{ form.description || '—' }}</span>
-            <span class="payload-key">bpmnXml:</span>
-            <span class="payload-val">{{ bpmnXml.length }} chars</span>
+            <span class="payload-key">bpmn_xml:</span>
+            <span class="payload-val">{{ bpmn_xml.length }} chars</span>
           </div>
         </div>
 

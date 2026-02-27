@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 export interface DeployFormData {
-  workflowKey: string;
+  workflow_key: string;
   description: string;
 }
 
@@ -19,7 +19,7 @@ export interface DeployFormData {
 })
 export class DeployModal implements OnChanges {
   @Input() visible = false;
-  @Input() bpmnXml = '';
+  @Input() bpmn_xml = '';
 
   // If editing existing — pass these in
   @Input() editMode = false;
@@ -30,7 +30,7 @@ export class DeployModal implements OnChanges {
   @Output() deploy = new EventEmitter<DeployFormData>();
   @Output() cancel = new EventEmitter<void>();
 
-  form: DeployFormData = { workflowKey: '', description: '' };
+  form: DeployFormData = { workflow_key: '', description: '' };
   keyError = signal('');
   deploying = signal(false);
 
@@ -39,7 +39,7 @@ export class DeployModal implements OnChanges {
   ngOnChanges(): void {
     if (this.visible) {
       this.form = {
-        workflowKey: this.editMode ? this.existingKey : '',
+        workflow_key: this.editMode ? this.existingKey : '',
         description: this.editMode ? this.existingDescription : '',
       };
       this.keyError.set('');
@@ -48,7 +48,7 @@ export class DeployModal implements OnChanges {
   }
 
   onKeyChange(value: string): void {
-    this.form.workflowKey = value;
+    this.form.workflow_key = value;
     this.validateKey(value);
   }
 
@@ -67,9 +67,9 @@ export class DeployModal implements OnChanges {
 
   isValid(): boolean {
     return (
-      this.form.workflowKey.trim().length > 0 &&
-      this.KEY_PATTERN.test(this.form.workflowKey) &&
-      this.bpmnXml.length > 0
+      this.form.workflow_key.trim().length > 0 &&
+      this.KEY_PATTERN.test(this.form.workflow_key) &&
+      this.bpmn_xml.length > 0
     );
   }
 

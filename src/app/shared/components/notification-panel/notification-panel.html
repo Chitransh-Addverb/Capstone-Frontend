@@ -1,0 +1,79 @@
+<div class="notif-wrapper">
+
+  <!-- Bell Button -->
+  <button class="bell-btn" (click)="toggle()" aria-label="Notifications">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 1a5 5 0 015 5v2l1.5 2H1.5L3 8V6a5 5 0 015-5z"/>
+      <path d="M6.5 13a1.5 1.5 0 003 0"/>
+    </svg>
+    @if (notifService.hasUnread()) {
+      <span class="bell-dot"></span>
+    }
+  </button>
+
+  <!-- Dropdown Panel -->
+  @if (isOpen()) {
+    <div class="notif-panel">
+
+      <!-- Panel Header -->
+      <div class="panel-header">
+        <div class="panel-header-left">
+          <span class="panel-title">Notifications</span>
+          @if (notifService.unreadCount() > 0) {
+            <span class="unread-badge">{{ notifService.unreadCount() }}</span>
+          }
+        </div>
+        @if (notifService.notifications().length > 0) {
+          <button class="clear-btn" (click)="clearAll()">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M1 1l9 9M10 1L1 10"/>
+            </svg>
+            Clear all
+          </button>
+        }
+      </div>
+
+      <!-- Notification List -->
+      <div class="notif-list">
+        @if (notifService.notifications().length === 0) {
+          <div class="notif-empty">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"
+                 stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+              <path d="M14 3a8 8 0 018 8v3l2 3H4l2-3v-3a8 8 0 018-8z"/>
+              <path d="M11.5 22a2.5 2.5 0 005 0"/>
+            </svg>
+            <span>No notifications yet</span>
+          </div>
+        }
+
+        @for (notif of notifService.notifications(); track trackById($index, notif)) {
+          <div class="notif-item" [class.unread]="!notif.read">
+            <div class="notif-icon notif-icon-{{ notif.type }}"
+                 [innerHTML]="getIcon(notif.type)">
+            </div>
+            <div class="notif-content">
+              <span class="notif-title">{{ notif.title }}</span>
+              @if (notif.message) {
+                <span class="notif-message">{{ notif.message }}</span>
+              }
+              <span class="notif-time">
+                {{ notifService.formatTime(notif.timestamp) }}
+              </span>
+            </div>
+            @if (!notif.read) {
+              <span class="notif-unread-dot"></span>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+  }
+
+</div>
+
+
+
+

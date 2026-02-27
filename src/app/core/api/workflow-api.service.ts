@@ -5,22 +5,21 @@ import { API_ENDPOINTS } from './api.config';
 
 /* ── Request DTOs ── */
 export interface DeployWorkflowRequest {
-  workflowKey: string;
-  bpmnXml: string;
+  workflow_key: string;
+  bpmn_xml: string;
   description: string;
 }
 
-export interface ActivateWorkflowRequest {
-  workflowKey: string;
-  version: number;
+export interface SetActiveRequest {
+  is_active: boolean;
 }
 
 /* ── Response DTOs ── */
 export interface WorkflowDefinitionDto {
   id: number;
-  workflowKey: string;
+  workflow_key: string;
   version: number;
-  isActive: boolean;
+  is_active: boolean;
   createdAt: string;
 }
 
@@ -42,11 +41,15 @@ export class WorkflowApiService {
     );
   }
 
-  /** POST /api/workflow/activate */
-  activate(payload: ActivateWorkflowRequest): Observable<ApiResponse<WorkflowDefinitionDto>> {
-    return this.http.post<ApiResponse<WorkflowDefinitionDto>>(
-      API_ENDPOINTS.workflow.activate,
-      payload
+  /** PATCH /api/v1/workflows/{workflowKey}/versions/{version}:setActive */
+  setActive(
+    workflow_key: string,
+    version: number,
+    isActive: boolean,
+  ): Observable<ApiResponse<WorkflowDefinitionDto>> {
+    return this.http.patch<ApiResponse<WorkflowDefinitionDto>>(
+      API_ENDPOINTS.workflow.setActive(workflow_key, version),
+      { is_active: isActive } satisfies SetActiveRequest,
     );
   }
 
@@ -78,6 +81,8 @@ export class WorkflowApiService {
     );
   }
 }
+
+
 
 
 

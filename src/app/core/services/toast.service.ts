@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { NotificationService } from './notification.service';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -12,6 +13,9 @@ export interface Toast {
 
 @Injectable({ providedIn: 'root' })
 export class ToastService {
+
+  private notificationService = inject(NotificationService);
+
   toasts = signal<Toast[]>([]);
 
   show(type: ToastType, title: string, message?: string, duration = 4000): void {
@@ -19,6 +23,8 @@ export class ToastService {
     const toast: Toast = { id, type, title, message, duration };
 
     this.toasts.update(list => [...list, toast]);
+
+    this.notificationService.add(type, title, message);
 
     if (duration > 0) {
       setTimeout(() => this.dismiss(id), duration);

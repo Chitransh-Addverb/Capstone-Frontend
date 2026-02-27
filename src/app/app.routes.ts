@@ -33,9 +33,8 @@ export const routes: Routes = [
       {
         path: 'scanner-config',
         loadComponent: () =>
-          import('./features/scanner-config/scanner-config').then(
-            m => m.ScannerConfig
-          ),
+          import('./features/scanner-config/scanner-config')
+            .then(m => m.ScannerConfig),
       },
       {
         path: 'monitoring',

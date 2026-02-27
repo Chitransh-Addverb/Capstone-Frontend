@@ -1,14 +1,16 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { WorkflowApiService } from '../api/workflow-api.service';
+import { Observable, tap } from 'rxjs';
 
 export type WorkflowStatus = 'active' | 'inactive' | 'draft';
 
 export interface WorkflowDefinition {
   id: string;
-  workflowKey: string;
+  workflow_key: string;
   description: string;
   version: number;
   status: WorkflowStatus;
-  bpmnXml: string;
+  bpmn_xml: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -16,7 +18,7 @@ export interface WorkflowDefinition {
 @Injectable({ providedIn: 'root' })
 export class WorkflowDefinitionService {
   private readonly STORAGE_KEY = 'wos-workflow-definitions';
-
+  private workflowApi = inject(WorkflowApiService);
   private _definitions = signal<WorkflowDefinition[]>(this.loadFromStorage());
 
   // All versions of all workflows
@@ -26,9 +28,9 @@ export class WorkflowDefinitionService {
   latestVersions = computed(() => {
     const map = new Map<string, WorkflowDefinition>();
     for (const def of this._definitions()) {
-      const existing = map.get(def.workflowKey);
+      const existing = map.get(def.workflow_key);
       if (!existing || def.version > existing.version) {
-        map.set(def.workflowKey, def);
+        map.set(def.workflow_key, def);
       }
     }
     return Array.from(map.values()).sort(
@@ -38,7 +40,7 @@ export class WorkflowDefinitionService {
 
   getByKey(key: string): WorkflowDefinition[] {
     return this._definitions()
-      .filter(d => d.workflowKey === key)
+      .filter(d => d.workflow_key === key)
       .sort((a, b) => b.version - a.version);
   }
 
@@ -62,20 +64,20 @@ export class WorkflowDefinitionService {
    * Saves this version to frontend store.
    */
   saveVersion(data: {
-    workflowKey: string;
+    workflow_key: string;
     description: string;
-    bpmnXml: string;
+    bpmn_xml: string;
   }): WorkflowDefinition {
-    const version = this.getNextVersion(data.workflowKey);
+    const version = this.getNextVersion(data.workflow_key);
 
     const def: WorkflowDefinition = {
-      id: `${data.workflowKey}-v${version}-${Date.now()}`,
-      workflowKey: data.workflowKey,
+      id: `${data.workflow_key}-v${version}-${Date.now()}`,
+      workflow_key: data.workflow_key,
       description: data.description,
       version,
       status: 'draft',
-      bpmnXml: data.bpmnXml,
-      createdAt: version === 1 ? new Date() : (this.getLatestByKey(data.workflowKey)?.createdAt ?? new Date()),
+      bpmn_xml: data.bpmn_xml,
+      createdAt: version === 1 ? new Date() : (this.getLatestByKey(data.workflow_key)?.createdAt ?? new Date()),
       updatedAt: new Date(),
     };
 
@@ -84,25 +86,38 @@ export class WorkflowDefinitionService {
     return def;
   }
 
-  activate(id: string): void {
+  // CORRECT — returns Observable, caller subscribes
+  activate(id: string): Observable<any> | undefined {
     const def = this.getById(id);
-    if (!def) return;
-    this._definitions.update(list =>
-      list.map(d => {
-        if (d.workflowKey === def.workflowKey) {
-          return { ...d, status: d.id === id ? 'active' : 'inactive' };
-        }
-        return d;
+    if (!def) return undefined;
+
+    return this.workflowApi.setActive(def.workflow_key, def.version, true).pipe(
+      tap(() => {
+        this._definitions.update(list =>
+          list.map(d => {
+            if (d.workflow_key === def.workflow_key) {
+              return { ...d, status: d.id === id ? 'active' : 'inactive' };
+            }
+            return d;
+          })
+        );
+        this.persist();
       })
     );
-    this.persist();
   }
 
-  deactivate(id: string): void {
-    this._definitions.update(list =>
-      list.map(d => d.id === id ? { ...d, status: 'inactive' } : d)
+  deactivate(id: string): Observable<any> | undefined {
+    const def = this.getById(id);
+    if (!def) return undefined;
+
+    return this.workflowApi.setActive(def.workflow_key, def.version, false).pipe(
+      tap(() => {
+        this._definitions.update(list =>
+          list.map(d => d.id === id ? { ...d, status: 'inactive' } : d)
+        );
+        this.persist();
+      })
     );
-    this.persist();
   }
 
   delete(id: string): void {
