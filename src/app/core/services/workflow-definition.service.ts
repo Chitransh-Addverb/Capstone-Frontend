@@ -1,11 +1,11 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { WorkflowApiService } from '../api/workflow-api.service';
 import { Observable, tap } from 'rxjs';
+import { WorkflowApiService, WorkflowDefinitionDto } from '../api/workflow-api.service';
 
-export type WorkflowStatus = 'active' | 'inactive' | 'draft';
+/** Only 2 statuses now — no draft */
+export type WorkflowStatus = 'active' | 'inactive';
 
 export interface WorkflowDefinition {
-  id: string;
   workflow_key: string;
   description: string;
   version: number;
@@ -15,16 +15,23 @@ export interface WorkflowDefinition {
   updatedAt: Date;
 }
 
+/**
+ * In-memory store for workflow definitions fetched from backend.
+ * No localStorage — source of truth is always the backend.
+ * The definitions page calls loadAll() on init.
+ * The designer calls getByKeyAndVersion() for edit loading.
+ */
 @Injectable({ providedIn: 'root' })
 export class WorkflowDefinitionService {
-  private readonly STORAGE_KEY = 'wos-workflow-definitions';
   private workflowApi = inject(WorkflowApiService);
-  private _definitions = signal<WorkflowDefinition[]>(this.loadFromStorage());
 
-  // All versions of all workflows
+  /** All versions across all workflow keys */
+  private _definitions = signal<WorkflowDefinition[]>([]);
+
+  /** Public read-only computed views */
   definitions = computed(() => this._definitions());
 
-  // Only latest version per key
+  /** One row per unique workflow_key — latest version */
   latestVersions = computed(() => {
     const map = new Map<string, WorkflowDefinition>();
     for (const def of this._definitions()) {
@@ -34,116 +41,124 @@ export class WorkflowDefinitionService {
       }
     }
     return Array.from(map.values()).sort(
-      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
     );
   });
 
+  /** All versions for a given key, sorted newest first */
   getByKey(key: string): WorkflowDefinition[] {
     return this._definitions()
       .filter(d => d.workflow_key === key)
       .sort((a, b) => b.version - a.version);
   }
 
-  getById(id: string): WorkflowDefinition | undefined {
-    return this._definitions().find(d => d.id === id);
-  }
-
   getLatestByKey(key: string): WorkflowDefinition | undefined {
-    const versions = this.getByKey(key);
-    return versions[0]; // already sorted desc
+    return this.getByKey(key)[0];
   }
 
-  getNextVersion(key: string): number {
-    const versions = this.getByKey(key);
-    if (versions.length === 0) return 1;
-    return Math.max(...versions.map(d => d.version)) + 1;
+  /** Find by key+version (our composite ID since backend has no UUID) */
+  getByKeyVersion(key: string, version: number): WorkflowDefinition | undefined {
+    return this._definitions().find(
+      d => d.workflow_key === key && d.version === version,
+    );
+  }
+
+  // ── Backend fetch ─────────────────────────────────────────────────
+
+  /**
+   * Loads all workflow definitions from backend.
+   * Maps backend DTO → internal WorkflowDefinition.
+   * Called by the definitions page on init.
+   */
+  loadAll(): Observable<WorkflowDefinitionDto[]> {
+    return this.workflowApi.listAll().pipe(
+      tap(dtos => this._definitions.set(dtos.map(this.mapDto))),
+    );
   }
 
   /**
-   * Called after successful backend deploy.
-   * Saves this version to frontend store.
+   * Loads all versions for a specific key.
+   * Used when expanding version history or when the definitions page
+   * needs full version history for a key.
    */
-  saveVersion(data: {
-    workflow_key: string;
-    description: string;
-    bpmn_xml: string;
-  }): WorkflowDefinition {
-    const version = this.getNextVersion(data.workflow_key);
-
-    const def: WorkflowDefinition = {
-      id: `${data.workflow_key}-v${version}-${Date.now()}`,
-      workflow_key: data.workflow_key,
-      description: data.description,
-      version,
-      status: 'draft',
-      bpmn_xml: data.bpmn_xml,
-      createdAt: version === 1 ? new Date() : (this.getLatestByKey(data.workflow_key)?.createdAt ?? new Date()),
-      updatedAt: new Date(),
-    };
-
-    this._definitions.update(list => [...list, def]);
-    this.persist();
-    return def;
+  loadVersionsForKey(key: string): Observable<WorkflowDefinitionDto[]> {
+    return this.workflowApi.listVersionsByKey(key).pipe(
+      tap(dtos => {
+        const mapped = dtos.map(this.mapDto);
+        // Merge into store: replace all versions for this key
+        this._definitions.update(current => [
+          ...current.filter(d => d.workflow_key !== key),
+          ...mapped,
+        ]);
+      }),
+    );
   }
 
-  // CORRECT — returns Observable, caller subscribes
-  activate(id: string): Observable<any> | undefined {
-    const def = this.getById(id);
-    if (!def) return undefined;
+  // ── Mutations (all hit backend first) ────────────────────────────
 
-    return this.workflowApi.setActive(def.workflow_key, def.version, true).pipe(
-      tap(() => {
+  activate(key: string, version: number): Observable<WorkflowDefinitionDto> {
+    return this.workflowApi.setActive(key, version, true).pipe(
+      tap(dto => {
+        // Mark this version active, all others for same key inactive
         this._definitions.update(list =>
           list.map(d => {
-            if (d.workflow_key === def.workflow_key) {
-              return { ...d, status: d.id === id ? 'active' : 'inactive' };
-            }
-            return d;
-          })
+            if (d.workflow_key !== key) return d;
+            return { ...d, status: d.version === version ? 'active' : 'inactive' };
+          }),
         );
-        this.persist();
-      })
+      }),
     );
   }
 
-  deactivate(id: string): Observable<any> | undefined {
-    const def = this.getById(id);
-    if (!def) return undefined;
-
-    return this.workflowApi.setActive(def.workflow_key, def.version, false).pipe(
+  deactivate(key: string, version: number): Observable<WorkflowDefinitionDto> {
+    return this.workflowApi.setActive(key, version, false).pipe(
       tap(() => {
         this._definitions.update(list =>
-          list.map(d => d.id === id ? { ...d, status: 'inactive' } : d)
+          list.map(d =>
+            d.workflow_key === key && d.version === version
+              ? { ...d, status: 'inactive' }
+              : d,
+          ),
         );
-        this.persist();
-      })
+      }),
     );
   }
 
-  delete(id: string): void {
-    this._definitions.update(list => list.filter(d => d.id !== id));
-    this.persist();
+  delete(key: string, version: number): Observable<void> {
+    return this.workflowApi.delete(key, version).pipe(
+      tap(() => {
+        this._definitions.update(list =>
+          list.filter(d => !(d.workflow_key === key && d.version === version)),
+        );
+      }),
+    );
   }
 
-  private persist(): void {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this._definitions()));
-    } catch {}
+  /**
+   * Called after a successful deploy to insert the new version into the
+   * in-memory store without a full reload.
+   */
+  addDeployed(dto: WorkflowDefinitionDto): void {
+    this._definitions.update(list => [...list, this.mapDto(dto)]);
   }
 
-  private loadFromStorage(): WorkflowDefinition[] {
-    try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
-      if (!raw) return [];
-      return JSON.parse(raw).map((d: any) => ({
-        ...d,
-        createdAt: new Date(d.createdAt),
-        updatedAt: new Date(d.updatedAt),
-      }));
-    } catch {
-      return [];
-    }
+  /**
+   * Clears all in-memory workflow data.
+   * Called on instance change so the next session starts fresh.
+   */
+  clearAll(): void {
+    this._definitions.set([]);
   }
+
+  // ── Mapper ────────────────────────────────────────────────────────
+
+  private mapDto = (dto: WorkflowDefinitionDto): WorkflowDefinition => ({
+    workflow_key: dto.workflow_key,
+    description:  dto.description ?? '',
+    version:      dto.version,
+    status:       dto.is_active ? 'active' : 'inactive',
+    bpmn_xml:     dto.bpmn_xml ?? '',
+    createdAt:    new Date(dto.created_at),
+    updatedAt:    new Date(dto.updated_at ?? dto.created_at),
+  });
 }
-
-

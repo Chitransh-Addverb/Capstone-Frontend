@@ -7,9 +7,13 @@
       <p class="page-subtitle">Assign workflow definitions to physical scanning units</p>
     </div>
     <div class="header-right">
-      <div class="live-indicator"><span class="live-dot"></span><span>{{ rows().length }} units registered</span></div>
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+        <span>{{ rows().length }} units registered</span>
+      </div>
       <button class="refresh-btn" (click)="loadAll()" title="Refresh">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
           <path d="M1 6.5A5.5 5.5 0 1012 6.5M1 6.5V2.5M1 6.5H5"/>
         </svg>
       </button>
@@ -19,14 +23,16 @@
   @if (loading()) {
     <div class="loading-state">
       <div class="loading-ring"><div class="loading-ring-inner"></div></div>
-      <span>Loading scanner units...</span>
+      <span>Loading scanner units…</span>
     </div>
   }
 
   @if (error() && !loading()) {
     <div class="error-banner">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-        <circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 10.5v.5"/>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linecap="round">
+        <circle cx="8" cy="8" r="6"/>
+        <path d="M8 5v4M8 10.5v.5"/>
       </svg>
       <span>{{ error() }}</span>
       <button class="btn btn-sm btn-ghost" (click)="loadAll()">Retry</button>
@@ -35,15 +41,27 @@
 
   @if (!loading() && !error()) {
     <div class="stats-bar">
-      <div class="stat-pill"><span class="stat-pill-value">{{ rows().length }}</span><span class="stat-pill-label">Total</span></div>
-      <div class="stat-pill mapped"><span class="stat-pill-dot"></span><span class="stat-pill-value">{{ mappedCount() }}</span><span class="stat-pill-label">Mapped</span></div>
-      <div class="stat-pill unmapped"><span class="stat-pill-value">{{ unmappedCount() }}</span><span class="stat-pill-label">Unmapped</span></div>
+      <div class="stat-pill">
+        <span class="stat-pill-value">{{ rows().length }}</span>
+        <span class="stat-pill-label">Total</span>
+      </div>
+      <div class="stat-pill mapped">
+        <span class="stat-pill-dot"></span>
+        <span class="stat-pill-value">{{ mappedCount() }}</span>
+        <span class="stat-pill-label">Mapped</span>
+      </div>
+      <div class="stat-pill unmapped">
+        <span class="stat-pill-value">{{ unmappedCount() }}</span>
+        <span class="stat-pill-label">Unmapped</span>
+      </div>
     </div>
 
     @if (rows().length === 0) {
       <div class="empty-scanners">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
-          <rect x="4" y="8" width="28" height="20" rx="3"/><path d="M11 18h14"/>
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor"
+             stroke-width="1.2" stroke-linecap="round">
+          <rect x="4" y="8" width="28" height="20" rx="3"/>
+          <path d="M11 18h14"/>
         </svg>
         <p>No scanners registered in the system.</p>
       </div>
@@ -52,7 +70,8 @@
     @if (rows().length > 0) {
       <div class="scanners-grid">
         @for (row of rows(); track row.scanner.scanner_id) {
-          <div class="scanner-card" [class.is-mapped]="!!row.config" [class.is-inactive]="!row.scanner.status">
+          <div class="scanner-card" [class.is-mapped]="!!row.config"
+               [class.is-inactive]="!row.scanner.status">
 
             <div class="card-topbar">
               <div class="unit-label">UNIT</div>
@@ -60,27 +79,23 @@
               <div class="card-status-light" [class.on]="row.scanner.status"></div>
             </div>
 
-            <div class="scanner-visual">
-              <div class="scanner-body" [class.active]="row.scanner.status" [class.mapped]="!!row.config">
-                <div class="scanner-screen">
-                  <div class="screen-line"></div><div class="screen-line"></div><div class="screen-line short"></div>
-                </div>
-                <div class="scanner-beam" [class.active]="row.scanner.status && !!row.config"></div>
-              </div>
-              <div class="scanner-shadow"></div>
-            </div>
-
+            <!-- ── Card Info (no middle SVG) ── -->
             <div class="card-info">
               <div class="info-row">
                 <span class="info-key">STATUS</span>
-                <span class="info-val" [class.val-active]="row.scanner.status" [class.val-inactive]="!row.scanner.status">
+                <span class="info-val"
+                      [class.val-active]="row.scanner.status"
+                      [class.val-inactive]="!row.scanner.status">
                   {{ row.scanner.status ? 'ONLINE' : 'OFFLINE' }}
                 </span>
               </div>
               <div class="info-row">
                 <span class="info-key">WORKFLOW</span>
-                @if (row.config) { <span class="info-val val-workflow">{{ row.config.workflow_key }}</span> }
-                @else { <span class="info-val val-none">UNASSIGNED</span> }
+                @if (row.config) {
+                  <span class="info-val val-workflow">{{ row.config.workflow_key }}</span>
+                } @else {
+                  <span class="info-val val-none">UNASSIGNED</span>
+                }
               </div>
               @if (row.config) {
                 <div class="info-row">
@@ -89,23 +104,36 @@
                 </div>
                 <div class="info-row">
                   <span class="info-key">SINCE</span>
-                  <span class="info-val" style="font-size:0.6875rem;color:var(--text-tertiary)">{{ formatDate(row.config.created_at) }}</span>
+                  <span class="info-val val-date">{{ formatDate(row.config.created_at) }}</span>
                 </div>
               }
             </div>
 
             <div class="card-actions">
               @if (row.config) {
-                <button class="card-btn btn-reassign" (click)="openAssign(row)">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M8.5 1.5l2 2-6 6H2.5v-2l6-6z"/></svg>
-                  Reassign
-                </button>
-                <button class="card-btn btn-detach" (click)="openDetach(row)" title="Detach workflow">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M2 2l8 8M10 2L2 10"/></svg>
-                </button>
+                <div class="card-btn-panel">
+                  <button class="card-btn btn-reassign" (click)="openAssign(row)">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                         stroke-width="1.75" stroke-linecap="round">
+                      <path d="M8.5 1.5l2 2-6 6H2.5v-2l6-6z"/>
+                    </svg>
+                    Reassign
+                  </button>
+                  <button class="card-btn btn-detach" (click)="openDetach(row)" title="Detach">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                         stroke-width="1.75" stroke-linecap="round">
+                      <path d="M2 2l8 8M10 2L2 10"/>
+                    </svg>
+                    Detach
+                  </button>
+                </div>
               } @else {
-                <button class="card-btn btn-assign" (click)="openAssign(row)" [disabled]="latestWorkflows().length === 0">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 1v10M1 6h10"/></svg>
+                <button class="card-btn btn-assign" (click)="openAssign(row)"
+                        [disabled]="allWorkflows().length === 0">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                       stroke-width="1.75" stroke-linecap="round">
+                    <path d="M6 1v10M1 6h10"/>
+                  </svg>
                   Assign Workflow
                 </button>
               }
@@ -132,14 +160,16 @@
             {{ drawer()!.existingConfig ? 'REASSIGN' : 'ASSIGN' }} WORKFLOW
           </div>
           <button class="drawer-close" (click)="cancelAssign()">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
               <path d="M1 1l12 12M13 1L1 13"/>
             </svg>
           </button>
         </div>
         <div class="drawer-scanner-badge">
           <div class="drawer-scanner-icon">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
               <path d="M1 5V3a2 2 0 012-2h2M11 1h2a2 2 0 012 2v2M15 11v2a2 2 0 01-2 2h-2M5 15H3a2 2 0 01-2-2v-2"/>
               <path d="M5 8h6"/>
             </svg>
@@ -156,101 +186,71 @@
       </div>
 
       <div class="drawer-body">
-        @if (latestWorkflows().length === 0) {
+
+        @if (allWorkflows().length === 0 && !workflowsLoading()) {
           <div class="drawer-empty-warn">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 15v1"/>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v5M12 15v1"/>
             </svg>
             <p>No workflows available.</p>
             <span>Deploy a workflow from the Designer first.</span>
           </div>
         } @else {
 
-          <!-- Step 1: Select Workflow -->
+          <!-- Step 1: Select Workflow with search -->
           <div class="drawer-section-label">SELECT WORKFLOW</div>
-          <div class="workflow-options">
-            @for (wf of latestWorkflows(); track wf.workflow_key) {
-              <div class="workflow-option"
-                   [class.selected]="drawer()!.selectedKey === wf.workflow_key"
-                   (click)="selectWorkflowKey(wf.workflow_key)">
-                <div class="workflow-option-left">
-                  <div class="workflow-option-avatar" [class.avatar-selected]="drawer()!.selectedKey === wf.workflow_key">
-                    {{ wf.workflow_key.charAt(0).toUpperCase() }}
-                  </div>
-                  <div class="workflow-option-info">
-                    <span class="workflow-option-key">{{ wf.workflow_key }}</span>
-                    @if (wf.description) {
-                      <span class="workflow-option-desc">{{ wf.description.length > 48 ? (wf.description | slice:0:48) + '…' : wf.description }}</span>
-                    }
-                  </div>
-                </div>
-                <div class="workflow-option-right">
-                  <span class="workflow-option-status" [class.active]="wf.status === 'active'">{{ wf.status }}</span>
-                  @if (drawer()!.selectedKey === wf.workflow_key) {
-                    <svg class="check-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                      <path d="M2 7l3.5 3.5L12 3"/>
-                    </svg>
-                  }
-                </div>
-              </div>
+
+          <!-- Workflow search bar -->
+          <div class="wf-search-wrap">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
+              <circle cx="5.5" cy="5.5" r="4"/><path d="M8.5 8.5l3 3"/>
+            </svg>
+            <input class="wf-search-input" type="text" placeholder="Search workflows…"
+                   [ngModel]="wfSearch()" (ngModelChange)="wfSearch.set($event)"
+                   autocomplete="off" />
+            @if (wfSearch()) {
+              <button class="wf-search-clear" (click)="wfSearch.set('')">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor"
+                     stroke-width="1.5" stroke-linecap="round">
+                  <path d="M1 1l8 8M9 1L1 9"/>
+                </svg>
+              </button>
             }
           </div>
 
-          <!-- Step 2: Select Version -->
-          @if (drawer()!.selectedKey && versionsForSelectedKey().length > 0) {
-            <div class="drawer-section-label" style="margin-top:20px">SELECT VERSION</div>
-            <div class="version-options">
-              @for (ver of versionsForSelectedKey(); track ver.id) {
-                <div class="version-option"
-                     [class.selected]="drawer()!.selectedVersion === ver.version"
-                     (click)="selectVersion(ver.version)">
-
-                  <span class="version-option-tag">v{{ ver.version }}</span>
-
-                  <span class="version-status-badge"
-                        [class.status-active]="ver.status === 'active'"
-                        [class.status-draft]="ver.status === 'draft'"
-                        [class.status-inactive]="ver.status === 'inactive'">
-                    {{ ver.status }}
-                  </span>
-
-                  <!-- ACTIVATE button for non-active versions -->
-                  @if (ver.status !== 'active') {
-                    <button class="inline-activate-btn"
-                            [disabled]="!!activatingWorkflowId()"
-                            (click)="$event.stopPropagation(); activateWorkflowInStore(ver)"
-                            title="Activate this version">
-                      @if (activatingWorkflowId() === ver.id) {
-                        <span class="wf-spinner"></span> Activating…
-                      } @else {
-                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                          <path d="M9.5 6l-6-3.5v7L9.5 6z"/>
-                        </svg>
-                        Activate
+          @if (workflowsLoading()) {
+            <div class="wf-loading">
+              <span class="wf-spinner"></span> Loading workflows…
+            </div>
+          } @else {
+            <div class="workflow-options">
+              @if (filteredWorkflows().length === 0) {
+                <div class="wf-no-results">No workflows match "{{ wfSearch() }}"</div>
+              }
+              @for (wf of filteredWorkflows(); track wf.workflow_key) {
+                <div class="workflow-option"
+                     [class.selected]="drawer()!.selectedKey === wf.workflow_key"
+                     (click)="selectWorkflowKey(wf.workflow_key)">
+                  <div class="workflow-option-left">
+                    <div class="workflow-option-avatar"
+                         [class.avatar-selected]="drawer()!.selectedKey === wf.workflow_key">
+                      {{ getAvatarLetter(wf.workflow_key) }}
+                    </div>
+                    <div class="workflow-option-info">
+                      <span class="workflow-option-key">{{ wf.workflow_key }}</span>
+                      @if (wf.description) {
+                        <span class="workflow-option-desc">
+                          {{ wf.description.length > 46 ? (wf.description | slice:0:46) + '…' : wf.description }}
+                        </span>
                       }
-                    </button>
-                  }
-
-                  <!-- PAUSE button for active versions -->
-                  @if (ver.status === 'active') {
-                    <button class="inline-deactivate-btn"
-                            [disabled]="!!activatingWorkflowId()"
-                            (click)="$event.stopPropagation(); deactivateWorkflowInStore(ver)"
-                            title="Pause this version">
-                      @if (activatingWorkflowId() === ver.id) {
-                        <span class="wf-spinner"></span> Pausing…
-                      } @else {
-                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                          <rect x="2" y="2" width="3" height="8" rx="0.5"/>
-                          <rect x="7" y="2" width="3" height="8" rx="0.5"/>
-                        </svg>
-                        Pause
-                      }
-                    </button>
-                  }
-
-                  @if (drawer()!.selectedVersion === ver.version) {
-                    <svg class="check-icon" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-left:auto">
+                    </div>
+                  </div>
+                  @if (drawer()!.selectedKey === wf.workflow_key) {
+                    <svg class="check-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round">
                       <path d="M2 7l3.5 3.5L12 3"/>
                     </svg>
                   }
@@ -259,21 +259,62 @@
             </div>
           }
 
-          <!-- Assignment Preview -->
-          @if (drawer()!.selectedKey) {
+          <!-- Step 2: Select Version (no activate button — mapping activates it) -->
+          @if (drawer()!.selectedKey && versionsForKey().length > 0) {
+            <div class="drawer-section-label" style="margin-top:20px">SELECT VERSION</div>
+            <div class="version-options">
+              @for (ver of versionsForKey(); track ver.version) {
+                <div class="version-option"
+                     [class.selected]="drawer()!.selectedVersion === ver.version"
+                     (click)="selectVersion(ver.version)">
+                  <span class="version-option-tag">v{{ ver.version }}</span>
+                  <!-- Show active/inactive as read-only indicator only — no button -->
+                  <span class="ver-status-dot" [class.ver-active]="ver.is_active"
+                        [title]="ver.is_active ? 'Currently active' : 'Inactive'"></span>
+                  @if (drawer()!.selectedVersion === ver.version) {
+                    <svg class="check-icon" width="13" height="13" viewBox="0 0 14 14" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         style="margin-left:auto">
+                      <path d="M2 7l3.5 3.5L12 3"/>
+                    </svg>
+                  }
+                </div>
+              }
+            </div>
+            <p class="ver-hint">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                   stroke-width="1.5" stroke-linecap="round">
+                <circle cx="6" cy="6" r="4.5"/><path d="M6 4v3M6 8.5v.5"/>
+              </svg>
+              Saving the mapping will activate the selected version automatically.
+            </p>
+          }
+
+          @if (drawer()!.selectedKey && versionsForKey().length === 0 && !workflowsLoading()) {
+            <div class="wf-loading" style="margin-top:14px">
+              <span class="wf-spinner"></span> Loading versions…
+            </div>
+          }
+
+          <!-- Assignment preview -->
+          @if (drawer()!.selectedKey && drawer()!.selectedVersion) {
             <div class="assignment-preview">
               <div class="preview-from">
                 <span class="preview-label">SCANNER</span>
                 <span class="preview-value">{{ drawer()!.scanner.scanner_id }}</span>
               </div>
               <div class="preview-arrow">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                     stroke-width="1.5" stroke-linecap="round">
                   <path d="M4 10h12M12 6l4 4-4 4"/>
                 </svg>
               </div>
               <div class="preview-to">
                 <span class="preview-label">WORKFLOW</span>
-                <span class="preview-value">{{ drawer()!.selectedKey }} <em>v{{ drawer()!.selectedVersion }}</em></span>
+                <span class="preview-value">
+                  {{ drawer()!.selectedKey }}
+                  <em>v{{ drawer()!.selectedVersion }}</em>
+                </span>
               </div>
             </div>
           }
@@ -282,17 +323,16 @@
       </div>
 
       <div class="drawer-footer">
-        <button class="drawer-cancel" (click)="cancelAssign()"
-                [disabled]="saving() || !!activatingWorkflowId()">
-          Cancel
-        </button>
-        <button class="drawer-confirm"
-                (click)="confirmAssign()"
-                [disabled]="!drawer()!.selectedKey || saving() || !!activatingWorkflowId() || latestWorkflows().length === 0">
+        <button class="drawer-cancel" (click)="cancelAssign()" [disabled]="saving()">Cancel</button>
+        <button class="drawer-confirm" (click)="confirmAssign()"
+                [disabled]="!drawer()!.selectedKey || !drawer()!.selectedVersion || saving()
+                            || allWorkflows().length === 0">
           @if (saving()) {
-            <span class="wf-spinner"></span> {{ drawer()!.existingConfig ? 'Updating…' : 'Activating…' }}
+            <span class="wf-spinner"></span>
+            {{ drawer()!.existingConfig ? 'Updating…' : 'Activating…' }}
           } @else {
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+                 stroke-width="1.75" stroke-linecap="round">
               <path d="M10.5 6.5l-7-4v8l7-4z"/>
             </svg>
             {{ drawer()!.existingConfig ? 'Update Mapping' : 'Activate Mapping' }}
@@ -310,15 +350,16 @@
   <div class="modal-backdrop" (click)="cancelDetach()">
     <div class="confirm-modal" (click)="$event.stopPropagation()">
       <div class="confirm-icon">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
           <path d="M11 8v5M11 15v1"/>
           <path d="M9.3 3l-8 14a2 2 0 001.7 3h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/>
         </svg>
       </div>
       <h3 class="confirm-title">Detach Workflow?</h3>
       <p class="confirm-desc">
-        <strong>{{ detachTarget()!.scanner.scanner_id }}</strong> will stop processing.
-        It will be detached from <strong>{{ detachTarget()!.config?.workflow_key }} v{{ detachTarget()!.config?.version }}</strong>.
+        <strong>{{ detachTarget()!.scanner.scanner_id }}</strong> will be detached from
+        <strong>{{ detachTarget()!.config?.workflow_key }} v{{ detachTarget()!.config?.version }}</strong>.
       </p>
       <div class="confirm-actions">
         <button class="btn btn-ghost" (click)="cancelDetach()" [disabled]="detaching()">Cancel</button>
@@ -330,5 +371,7 @@
     </div>
   </div>
 }
+
+
 
 

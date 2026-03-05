@@ -6,6 +6,7 @@
 
 .main-content {
   flex: 1;
+  min-width: 0;
   margin-left: var(--sidebar-width);
   margin-top: var(--topbar-height);
   min-height: calc(100vh - var(--topbar-height));
@@ -17,7 +18,11 @@
 .content-wrapper {
   padding: 28px;
   min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
+
+
 
 
 

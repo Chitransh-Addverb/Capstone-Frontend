@@ -52,7 +52,7 @@
 }
 
 .logo-name {
-  font-size: 0.9375rem;
+  font-size: 1rem;            /* bumped from 0.9375rem */
   font-weight: 600;
   color: #fff;
   letter-spacing: -0.02em;
@@ -60,7 +60,7 @@
 }
 
 .logo-sub {
-  font-size: 0.625rem;
+  font-size: 0.6875rem;       /* bumped from 0.625rem */
   font-weight: 400;
   color: rgba(255, 255, 255, 0.3);
   letter-spacing: 0.08em;
@@ -107,7 +107,7 @@
 
 .nav-section-label {
   display: block;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;       /* bumped from 0.625rem */
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -120,11 +120,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 9px 10px;          /* slightly taller for larger text */
   border-radius: var(--radius-md);
   color: var(--text-sidebar);
   text-decoration: none;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;        /* bumped from 0.8125rem */
   font-weight: 450;
   letter-spacing: -0.01em;
   transition: all var(--transition-fast);
@@ -177,7 +177,7 @@
 }
 
 .nav-badge {
-  font-size: 0.6rem;
+  font-size: 0.6875rem;       /* bumped */
   padding: 1px 5px;
 }
 
@@ -235,14 +235,14 @@
 }
 
 .status-label {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;       /* bumped from 0.75rem */
   font-weight: 500;
   color: var(--status-success);
   white-space: nowrap;
 }
 
 .status-sub {
-  font-size: 0.65rem;
+  font-size: 0.6875rem;       /* bumped from 0.65rem */
   color: rgba(255, 255, 255, 0.3);
   white-space: nowrap;
 }

@@ -4,20 +4,11 @@
   <div class="topbar-left">
     <div class="page-context">
       <span class="page-title">Workflow Orchestration System</span>
-      <span class="page-version">v1.0</span>
     </div>
   </div>
 
   <!-- Right -->
   <div class="topbar-right">
-
-    <!-- Engine status -->
-    <div class="engine-status">
-      <span class="engine-dot"></span>
-      <span class="engine-label">Engine Active</span>
-    </div>
-
-    <div class="separator"></div>
 
     <!-- Notification Panel -->
     <app-notification-panel />
@@ -47,23 +38,37 @@
 
     <div class="separator"></div>
 
-    <!-- User -->
-    <button class="user-btn" aria-label="User menu">
-      <div class="user-avatar">
-        <span>DC</span>
+    <!-- Instance / User area -->
+    <div class="instance-area">
+
+      <!-- Current instance pill -->
+      <div class="instance-pill" [attr.data-inst]="instanceService.tenantId()">
+        <div class="instance-dot"></div>
+        <div class="instance-pill-info">
+          <span class="instance-pill-label">
+            {{ instanceService.tenantId() ?? '—' }}
+          </span>
+          <span class="instance-pill-user">
+            {{ instanceService.username() ?? '' }}
+          </span>
+        </div>
       </div>
-      <div class="user-info">
-        <span class="user-name">Dev C</span>
-        <span class="user-role">Frontend Owner</span>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-           stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-        <path d="M2 4l4 4 4-4"/>
-      </svg>
-    </button>
+
+      <!-- Change Instance button -->
+      <button class="change-btn" (click)="changeInstance()" title="Change instance">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 7A6 6 0 0112.5 4M13 7A6 6 0 011.5 10M1 4v3h3M13 10v-3h-3"/>
+        </svg>
+        <span>Change</span>
+      </button>
+
+    </div>
 
   </div>
 </header>
+
+
 
 
 

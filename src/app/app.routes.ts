@@ -1,10 +1,23 @@
 import { Routes } from '@angular/router';
-import { MainLayout } from './core/layout/main-layout/main-layout';
+import { instanceGuard } from './core/guards/instance.guard';
 
 export const routes: Routes = [
+
+  // ── Instance selector — no guard ────────────────────────────────────
+  {
+    path: 'select-instance',
+    loadComponent: () =>
+      import('./features/instance-selector/instance-selector')
+        .then(m => m.InstanceSelector),
+  },
+
+  // ── Main app layout — protected by instanceGuard ─────────────────────
   {
     path: '',
-    component: MainLayout,
+    canActivate: [instanceGuard],
+    loadComponent: () =>
+      import('./core/layout/main-layout/main-layout')
+        .then(m => m.MainLayout),
     children: [
       {
         path: '',
@@ -14,21 +27,20 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('./features/dashboard/dashboard').then(m => m.Dashboard),
+          import('./features/dashboard/dashboard')
+            .then(m => m.Dashboard),
       },
       {
         path: 'designer',
         loadComponent: () =>
-          import('./features/workflow-designer/workflow-designer').then(
-            m => m.WorkflowDesignerComponent
-          ),
+          import('./features/workflow-designer/workflow-designer')
+            .then(m => m.WorkflowDesignerComponent),
       },
       {
         path: 'definitions',
         loadComponent: () =>
-          import('./features/workflow-definitions/workflow-definitions').then(
-            m => m.WorkflowDefinitionsComponent
-          ),
+          import('./features/workflow-definitions/workflow-definitions')
+            .then(m => m.WorkflowDefinitionsComponent),
       },
       {
         path: 'scanner-config',
@@ -39,18 +51,22 @@ export const routes: Routes = [
       {
         path: 'monitoring',
         loadComponent: () =>
-          import('./features/monitoring/monitoring').then(m => m.Monitoring),
+          import('./features/monitoring/monitoring')
+            .then(m => m.Monitoring),
       },
       {
         path: 'instances',
         loadComponent: () =>
-          import('./features/instances/instances').then(m => m.Instances),
-      },
-      {
-        path: '**',
-        redirectTo: 'dashboard',
+          import('./features/instances/instances')
+            .then(m => m.Instances),
       },
     ],
+  },
+
+  // ── Fallback ──────────────────────────────────────────────────────────
+  {
+    path: '**',
+    redirectTo: 'dashboard',
   },
 ];
 

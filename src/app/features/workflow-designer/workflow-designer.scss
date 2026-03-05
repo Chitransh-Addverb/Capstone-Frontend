@@ -279,6 +279,21 @@
   }
 }
 
+/* ── Disable "Change element" wrench from context pad ────────────────
+   The wrench icon (bpmn-icon-screw-wrench) opens the morph/replace popup.
+   Our provider already removes it, but as a CSS safety net we also hide it.
+   ───────────────────────────────────────────────────────────────────── */
+:host ::ng-deep {
+  .djs-context-pad .entry.bpmn-icon-screw-wrench,
+  .djs-context-pad [data-action="replace"],
+  .djs-context-pad .entry[title*="Change"],
+  .djs-context-pad .entry[title*="change"],
+  .djs-context-pad .entry[title*="Replace"],
+  .djs-context-pad .entry[title*="replace"] {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
 
 
 

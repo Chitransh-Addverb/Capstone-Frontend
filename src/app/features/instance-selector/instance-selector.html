@@ -1,0 +1,144 @@
+<div class="selector-shell">
+
+  <!-- Background decoration -->
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <!-- Main Card -->
+  <div class="selector-card">
+
+    <!-- Brand Header -->
+    <div class="brand-header">
+      <div class="brand-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <rect width="11" height="11" rx="3" fill="var(--accent-primary)" opacity="0.9"/>
+          <rect x="13" width="11" height="11" rx="3" fill="var(--accent-primary)" opacity="0.5"/>
+          <rect y="13" width="11" height="11" rx="3" fill="var(--accent-primary)" opacity="0.5"/>
+          <rect x="13" y="13" width="11" height="11" rx="3" fill="var(--accent-primary)" opacity="0.25"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">WorkFlow Orchestrator</span>
+        <span class="brand-sub">Multi-tenant Warehouse Management</span>
+      </div>
+    </div>
+
+    <!-- Card Content -->
+    <div class="card-content">
+
+      <!-- Hero -->
+      <div class="card-hero">
+        <h1 class="hero-title">Select Your Instance</h1>
+        <p class="hero-desc">Choose a warehouse instance to begin. Your session will be scoped to this instance.</p>
+      </div>
+
+      <!-- Username Field -->
+      <div class="field-group">
+        <label class="field-label">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+               stroke-width="1.5" stroke-linecap="round">
+            <circle cx="7" cy="5" r="3"/>
+            <path d="M1.5 12.5a5.5 5.5 0 0111 0"/>
+          </svg>
+          Username
+        </label>
+        <div class="input-row">
+          @if (avatarLetter) {
+            <div class="avatar-preview">{{ avatarLetter }}</div>
+          }
+          <input
+            class="field-input"
+            [class.has-avatar]="!!avatarLetter"
+            [class.input-error]="!!usernameError()"
+            type="text"
+            placeholder="Enter your username…"
+            [ngModel]="username()"
+            (ngModelChange)="onUsernameChange($event)"
+            autocomplete="off"
+          />
+        </div>
+        @if (usernameError()) {
+          <span class="field-error">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
+              <circle cx="6" cy="6" r="5"/><path d="M6 4v2.5M6 8h.01"/>
+            </svg>
+            {{ usernameError() }}
+          </span>
+        }
+      </div>
+
+      <!-- Instance Cards -->
+      <div class="field-group">
+        <label class="field-label">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+               stroke-width="1.5" stroke-linecap="round">
+            <rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/>
+            <rect x="4.5" y="8" width="5" height="5" rx="1"/>
+          </svg>
+          Warehouse Instance
+        </label>
+        <div class="instance-grid">
+          @for (inst of instances; track inst.id) {
+            <button
+              class="instance-card"
+              [class.selected]="selectedInstance() === inst.id"
+              (click)="selectInstance(inst.id)"
+            >
+              <div class="instance-icon" [attr.data-inst]="inst.id">
+                {{ inst.id.charAt(0) }}
+              </div>
+              <div class="instance-info">
+                <span class="instance-name">{{ inst.id }}</span>
+                <span class="instance-sub">{{ inst.sub }}</span>
+              </div>
+              @if (selectedInstance() === inst.id) {
+                <div class="instance-check">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                       stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M2 6l2.5 2.5L10 3"/>
+                  </svg>
+                </div>
+              }
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Session Info -->
+      <div class="session-info">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <circle cx="6.5" cy="6.5" r="5.5"/><path d="M6.5 4.5v3M6.5 9h.01"/>
+        </svg>
+        Session is tab-scoped — closing this tab will require re-selecting your instance.
+      </div>
+
+      <!-- Confirm Button -->
+      <button
+        class="confirm-btn"
+        [disabled]="!canConfirm() || confirming()"
+        (click)="confirm()"
+      >
+        @if (confirming()) {
+          <span class="btn-spinner"></span>
+          Connecting…
+        } @else {
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <path d="M13 8l-5-5v3C4 6.5 2 9 2 13c1.5-2 3.5-3 6-3v3l5-5z"/>
+          </svg>
+          Enter Instance
+        }
+      </button>
+
+    </div>
+  </div>
+
+  <p class="bottom-brand">Workflow Orchestration System · Multi-Tenant Edition</p>
+
+</div>
+
+
+
+

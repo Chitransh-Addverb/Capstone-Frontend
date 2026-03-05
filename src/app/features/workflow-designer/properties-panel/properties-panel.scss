@@ -365,150 +365,50 @@
   margin-top: 4px;
 }
 
-/* Flow identity row (Flow 1 / Flow 2 header) */
-.props-flow-identity {
+/* ── Auto-label display (Success / Failure) ──────────────────────── */
+.auto-label-display {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: var(--surface-ground);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-}
-
-.flow-identity-badge {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  background: var(--accent-subtle);
-  color: var(--accent-primary);
-  border-radius: var(--radius-full);
-  white-space: nowrap;
-}
-
-.flow-identity-route {
-  font-size: 0.6875rem;
-  color: var(--text-tertiary);
-  font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Locked value display (Flow 1 / Flow 2 auto label) */
-.props-value-locked {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 7px 10px;
-  background: var(--surface-ground);
-  border: 1px dashed var(--border-default);
+  gap: 7px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
   font-size: 0.8125rem;
-  color: var(--text-secondary);
-}
-
-.locked-tag {
-  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 1px 6px;
-  background: var(--surface-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-full);
-  color: var(--text-tertiary);
-}
+  border: 1px solid;
 
-/* Lock hint with icon */
-.locked-hint {
-  display: flex !important;
-  align-items: flex-start;
-  gap: 5px;
+  &.success {
+    background: rgba(34,197,94,0.08);
+    border-color: rgba(34,197,94,0.3);
+    color: var(--status-success, #22c55e);
+  }
 
-  svg {
-    flex-shrink: 0;
-    margin-top: 1px;
-    color: var(--status-warning, #eab308);
+  &.failure {
+    background: rgba(239,68,68,0.08);
+    border-color: rgba(239,68,68,0.3);
+    color: #ef4444;
+  }
+
+  &:not(.success):not(.failure) {
+    background: var(--surface-ground);
+    border-color: var(--border-subtle);
+    color: var(--text-tertiary);
+  }
+
+  span:not(.auto-tag) {
+    flex: 1;
   }
 }
 
-/* Live condition expression preview */
-.condition-preview-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  background: var(--surface-ground);
-  border: 1px solid var(--accent-primary);
-  border-radius: var(--radius-md);
-  opacity: 0.9;
-}
-
-.condition-preview-label {
-  font-size: 0.625rem;
+.auto-tag {
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent-primary);
+  padding: 1px 5px;
+  background: currentColor;
+  color: white !important;
+  border-radius: var(--radius-full);
+  opacity: 0.5;
 }
-
-.condition-preview-code {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  color: var(--text-primary);
-  font-weight: 600;
-  word-break: break-all;
-}
-
-/* Warning-style info block */
-.warning-block {
-  border-color: rgba(234,179,8,0.3) !important;
-  background: rgba(234,179,8,0.05) !important;
-  color: var(--status-warning, #eab308) !important;
-}
-
-/* Disabled select visual */
-select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ── Hint rows (accepted / not accepted) ─────────────────────────── */
-.hint-row {
-  display: block;
-  font-size: 0.6875rem;
-  line-height: 1.8;
-
-  code {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    padding: 1px 4px;
-    border-radius: 3px;
-    border: 1px solid var(--border-subtle);
-  }
-
-  &.hint-ok {
-    color: var(--status-success, #22c55e);
-    code {
-      background: rgba(34,197,94,0.08);
-      border-color: rgba(34,197,94,0.25);
-      color: var(--status-success, #22c55e);
-    }
-  }
-
-  &.hint-err {
-    color: #ef4444;
-    code {
-      background: rgba(239,68,68,0.08);
-      border-color: rgba(239,68,68,0.25);
-      color: #ef4444;
-    }
-  }
-}
-
-
 
 

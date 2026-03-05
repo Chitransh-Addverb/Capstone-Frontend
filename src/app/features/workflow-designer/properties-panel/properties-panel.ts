@@ -86,7 +86,7 @@ function normalizeLane(raw: string): string | null {
 }
 
 /**
- * Normalise Flow label input (all sequence flows).
+ * Normalise Flow label input (plain sequence flows only).
  * Accepts: "flow1", "flow 1", "FLOW1", "Flow 1"
  * Rejects: "f1", "fl1"   → returns null
  * Output:  "Flow 1"
@@ -96,6 +96,17 @@ function normalizeFlow(raw: string): string | null {
   const match = trimmed.match(/^flow\s*(\d+)$/);
   if (!match) return null;
   return `Flow ${match[1]}`;
+}
+
+/**
+ * Auto-label for gateway sequence flows.
+ * true  → "Success"
+ * false → "Failure"
+ */
+function gatewayFlowLabel(boolValue: 'true' | 'false' | ''): string {
+  if (boolValue === 'true')  return 'Success';
+  if (boolValue === 'false') return 'Failure';
+  return '';
 }
 
 @Component({
@@ -206,6 +217,11 @@ export class PropertiesPanel implements OnChanges {
     if (locked === 'true')  return 'false';
     if (locked === 'false') return 'true';
     return '';
+  });
+
+  /** Auto-derived label for the current gateway flow value */
+  gatewayFlowAutoLabel = computed((): string => {
+    return gatewayFlowLabel(this.conditionBoolValue());
   });
 
   // ── Lifecycle ─────────────────────────────────────────────────────
@@ -485,38 +501,26 @@ export class PropertiesPanel implements OnChanges {
   saveGatewayFlow(): void {
     const boolVal = this.conditionBoolValue();
     const variable = this.conditionVariable();
-    const rawLabel = this.flowLabel().trim();
-
-    let hasError = false;
 
     if (!boolVal) {
       this.conditionError.set('Please select true or false.');
-      hasError = true;
+      return;
     }
     if (!variable) {
       this.conditionError.set('Cannot determine condition — connect this flow to a Service Task first.');
-      hasError = true;
+      return;
     }
 
-    const normalizedLabel = normalizeFlow(rawLabel);
-    if (!rawLabel) {
-      this.flowLabelError.set('Flow label is required.');
-      hasError = true;
-    } else if (!normalizedLabel) {
-      this.flowLabelError.set('Must be "Flow N" (e.g. Flow 1). Abbreviations like f1 are not allowed.');
-      hasError = true;
-    }
+    // Label is always auto-derived: true → "Success", false → "Failure"
+    const label = gatewayFlowLabel(boolVal);
 
-    if (hasError) return;
-
-    this.flowLabel.set(normalizedLabel!);
     this.conditionError.set('');
     this.flowLabelError.set('');
 
     this.conditionSaved.emit({
       elementId: this.selectedElement()!.id,
       condition: `${variable} == ${boolVal}`,
-      label: normalizedLabel!,
+      label,
     });
   }
 
@@ -572,8 +576,4 @@ export class PropertiesPanel implements OnChanges {
     this.deselected.emit();
   }
 }
-
-
-
-
 

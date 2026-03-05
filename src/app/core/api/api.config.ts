@@ -4,12 +4,12 @@ export const API_BASE = environment.apiBase;
 
 export const API_ENDPOINTS = {
   workflow: {
-    deploy:     `${API_BASE}/workflows`,
-    setActive:  (workflowKey: string, version: number) => `${API_BASE}/workflows/${workflowKey}/versions/${version}:setActive`,
-    deactivate: `${API_BASE}/workflows/deactivate`,
-    list:       `${API_BASE}/workflows/list`,
-    getById:    (id: string) => `${API_BASE}/workflows/${id}`,
-    delete:     (id: string) => `${API_BASE}/workflows/${id}`,
+    deploy:           `${API_BASE}/workflows`,
+    listByKey:        (workflowKey: string) => `${API_BASE}/workflows?workflowKey=${workflowKey}`,
+    listAll:          `${API_BASE}/workflows`,
+    getByKeyVersion:  (key: string, version: number) => `${API_BASE}/workflows/${key}/versions/${version}`,
+    setActive:        (key: string, version: number) => `${API_BASE}/workflows/${key}/versions/${version}:setActive`,
+    delete:           (key: string, version: number) => `${API_BASE}/workflows/${key}/versions/${version}`,
   },
   scanner: {
     list:       `${API_BASE}/scanners`,

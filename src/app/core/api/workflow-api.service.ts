@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { API_ENDPOINTS } from './api.config';
 
 /* ── Request DTOs ── */
@@ -16,11 +17,13 @@ export interface SetActiveRequest {
 
 /* ── Response DTOs ── */
 export interface WorkflowDefinitionDto {
-  id: number;
   workflow_key: string;
   version: number;
   is_active: boolean;
-  createdAt: string;
+  description?: string;
+  bpmn_xml?: string;         // only returned by getByKeyVersion
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface ApiResponse<T> {
@@ -33,57 +36,59 @@ export interface ApiResponse<T> {
 export class WorkflowApiService {
   private http = inject(HttpClient);
 
-  /** POST /api/workflow/deploy */
+  /** POST /api/v1/workflows — deploy new version (returns inactive by default) */
   deploy(payload: DeployWorkflowRequest): Observable<ApiResponse<WorkflowDefinitionDto>> {
     return this.http.post<ApiResponse<WorkflowDefinitionDto>>(
       API_ENDPOINTS.workflow.deploy,
-      payload
+      payload,
     );
   }
 
-  /** PATCH /api/v1/workflows/{workflowKey}/versions/{version}:setActive */
-  setActive(
-    workflow_key: string,
-    version: number,
-    isActive: boolean,
-  ): Observable<ApiResponse<WorkflowDefinitionDto>> {
-    return this.http.patch<ApiResponse<WorkflowDefinitionDto>>(
-      API_ENDPOINTS.workflow.setActive(workflow_key, version),
-      { is_active: isActive } satisfies SetActiveRequest,
-    );
+  /**
+   * GET /api/v1/workflows?workflowKey={key}
+   * Returns all versions for a given key (bpmn_xml excluded — lightweight).
+   */
+  listVersionsByKey(workflowKey: string): Observable<WorkflowDefinitionDto[]> {
+    return this.http
+      .get<ApiResponse<WorkflowDefinitionDto[]>>(API_ENDPOINTS.workflow.listByKey(workflowKey))
+      .pipe(map(r => r.data));
   }
 
-  /** GET /api/workflow/list */
-  list(): Observable<ApiResponse<WorkflowDefinitionDto[]>> {
-    return this.http.get<ApiResponse<WorkflowDefinitionDto[]>>(
-      API_ENDPOINTS.workflow.list
-    );
+  /**
+   * GET /api/v1/workflows/all
+   * Returns latest version per workflow key (for the definitions table).
+   * If backend doesn't have this endpoint, caller can aggregate from listVersionsByKey.
+   */
+  listAll(): Observable<WorkflowDefinitionDto[]> {
+    return this.http
+      .get<ApiResponse<WorkflowDefinitionDto[]>>(API_ENDPOINTS.workflow.listAll)
+      .pipe(map(r => r.data));
   }
 
-  /** GET /api/workflow/:id */
-  getById(id: string): Observable<ApiResponse<WorkflowDefinitionDto>> {
-    return this.http.get<ApiResponse<WorkflowDefinitionDto>>(
-      API_ENDPOINTS.workflow.getById(id)
-    );
+  /**
+   * GET /api/v1/workflows/{workflowKey}/versions/{version}
+   * Returns full DTO including bpmn_xml — used when loading editor for edit.
+   */
+  getByKeyAndVersion(key: string, version: number): Observable<WorkflowDefinitionDto> {
+    return this.http
+      .get<ApiResponse<WorkflowDefinitionDto>>(API_ENDPOINTS.workflow.getByKeyVersion(key, version))
+      .pipe(map(r => r.data));
   }
 
-  /** DELETE /api/workflow/:id */
-  delete(id: string): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(
-      API_ENDPOINTS.workflow.delete(id)
-    );
+  /** PATCH /api/v1/workflows/{key}/versions/{version}:setActive */
+  setActive(key: string, version: number, isActive: boolean): Observable<WorkflowDefinitionDto> {
+    return this.http
+      .patch<ApiResponse<WorkflowDefinitionDto>>(
+        API_ENDPOINTS.workflow.setActive(key, version),
+        { is_active: isActive } satisfies SetActiveRequest,
+      )
+      .pipe(map(r => r.data));
   }
 
-  /** GET /api/workflow/instances */
-  listInstances(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(
-      API_ENDPOINTS.instance.list
-    );
+  /** DELETE /api/v1/workflows/{key}/versions/{version} */
+  delete(key: string, version: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<void>>(API_ENDPOINTS.workflow.delete(key, version))
+      .pipe(map(() => undefined));
   }
 }
-
-
-
-
-
-
