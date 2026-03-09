@@ -23,6 +23,9 @@ interface DrawerState {
   selectedVersion: number;
 }
 
+type MappingFilter = 'all' | 'mapped' | 'unmapped';
+type ScannerSort   = 'id' | 'mapped' | 'status';
+
 @Component({
   selector: 'app-scanner-config',
   imports: [CommonModule, FormsModule],
@@ -40,28 +43,61 @@ export class ScannerConfig implements OnInit {
   loading = signal(true);
   error   = signal<string | null>(null);
 
-  // ── Workflow list ─────────────────────────────────────────────────
+  // ── Filter / search / sort (filter bar) ──────────────────────────
+  scannerSearch  = signal('');
+  mappingFilter  = signal<MappingFilter>('all');
+  scannerSort    = signal<ScannerSort>('id');
+
+  hasScannerFilters = computed(() =>
+    this.scannerSearch() !== '' ||
+    this.mappingFilter() !== 'all' ||
+    this.scannerSort() !== 'id',
+  );
+
+  filteredRows = computed(() => {
+    const q      = this.scannerSearch().trim().toLowerCase();
+    const filter = this.mappingFilter();
+    const sort   = this.scannerSort();
+
+    let pool = this.rows();
+
+    if (q) {
+      pool = pool.filter(r =>
+        r.scanner.scanner_id.toLowerCase().includes(q) ||
+        r.config?.workflow_key?.toLowerCase().includes(q),
+      );
+    }
+    if (filter === 'mapped')   pool = pool.filter(r => !!r.config);
+    if (filter === 'unmapped') pool = pool.filter(r => !r.config);
+
+    return [...pool].sort((a, b) => {
+      if (sort === 'id')     return a.scanner.scanner_id.localeCompare(b.scanner.scanner_id);
+      if (sort === 'mapped') return (!!b.config ? 1 : 0) - (!!a.config ? 1 : 0);
+      if (sort === 'status') return (b.scanner.status ? 1 : 0) - (a.scanner.status ? 1 : 0);
+      return 0;
+    });
+  });
+
+  clearScannerFilters(): void {
+    this.scannerSearch.set('');
+    this.mappingFilter.set('all');
+    this.scannerSort.set('id');
+  }
+
+  // ── Workflow list (for drawer) ────────────────────────────────────
   allWorkflows     = signal<WorkflowDefinitionDto[]>([]);
   wfSearch         = signal('');
   workflowsLoading = signal(false);
 
-  /**
-   * Deduplicated list — ONE entry per workflow_key (the latest version).
-   * Used for Step 1 (workflow picker). Shows only the name, nothing else.
-   */
   uniqueWorkflows = computed(() => {
-    const all = this.allWorkflows();
-    // Keep only the first occurrence of each workflow_key
-    // (listAll should already return latest-per-key, but deduplicate defensively)
     const seen = new Set<string>();
-    return all.filter(w => {
+    return this.allWorkflows().filter(w => {
       if (seen.has(w.workflow_key)) return false;
       seen.add(w.workflow_key);
       return true;
     });
   });
 
-  /** Unique workflows filtered by search query */
   filteredWorkflows = computed(() => {
     const q = this.wfSearch().trim().toLowerCase();
     const unique = this.uniqueWorkflows();
@@ -72,7 +108,6 @@ export class ScannerConfig implements OnInit {
     );
   });
 
-  /** All versions for the selected key — used in Step 2 */
   versionsForKey = signal<WorkflowDefinitionDto[]>([]);
 
   // ── Drawer ────────────────────────────────────────────────────────
@@ -83,6 +118,12 @@ export class ScannerConfig implements OnInit {
   // ── Detach ────────────────────────────────────────────────────────
   detachTarget = signal<ScannerRow | null>(null);
   detaching    = signal(false);
+
+  // ── Add Scanner ───────────────────────────────────────────────────
+  showAddScanner  = signal(false);
+  newScannerId    = signal('');
+  addingScanner   = signal(false);
+  addScannerError = signal<string | null>(null);
 
   // ── Stats ─────────────────────────────────────────────────────────
   mappedCount   = computed(() => this.rows().filter(r => !!r.config).length);
@@ -145,10 +186,55 @@ export class ScannerConfig implements OnInit {
     });
   }
 
+  // ── Add Scanner ───────────────────────────────────────────────────
+  openAddScanner(): void {
+    this.newScannerId.set('');
+    this.addScannerError.set(null);
+    this.showAddScanner.set(true);
+  }
+
+  cancelAddScanner(): void {
+    if (this.addingScanner()) return;
+    this.showAddScanner.set(false);
+    this.newScannerId.set('');
+    this.addScannerError.set(null);
+  }
+
+  confirmAddScanner(): void {
+    const id = this.newScannerId().trim();
+    if (!id) return;
+
+    if (id.length < 2) {
+      this.addScannerError.set('Scanner ID must be at least 2 characters.');
+      return;
+    }
+    if (this.rows().some(r => r.scanner.scanner_id === id)) {
+      this.addScannerError.set(`Scanner "${id}" is already registered.`);
+      return;
+    }
+
+    this.addScannerError.set(null);
+    this.addingScanner.set(true);
+
+    this.scannerApi.createScanner({ scanner_id: id }).subscribe({
+      next: () => {
+        this.toast.success('Scanner registered', `${id} is now available for workflow mapping.`);
+        this.showAddScanner.set(false);
+        this.newScannerId.set('');
+        this.addingScanner.set(false);
+        this.loadAll();
+      },
+      error: (err) => {
+        this.addScannerError.set(err?.error?.message || err?.message || 'Failed to register scanner.');
+        this.addingScanner.set(false);
+      },
+    });
+  }
+
   // ── Drawer ────────────────────────────────────────────────────────
   openAssign(row: ScannerRow): void {
-    const existing   = row.config;
-    const firstWf    = this.uniqueWorkflows()[0];
+    const existing    = row.config;
+    const firstWf     = this.uniqueWorkflows()[0];
     const selectedKey = existing?.workflow_key ?? firstWf?.workflow_key ?? '';
 
     this.drawer.set({
@@ -165,7 +251,6 @@ export class ScannerConfig implements OnInit {
   selectWorkflowKey(key: string): void {
     const d = this.drawer();
     if (!d) return;
-    // Reset version when switching workflow
     this.drawer.set({ ...d, selectedKey: key, selectedVersion: 0 });
     this.loadVersionsForKey(key);
   }

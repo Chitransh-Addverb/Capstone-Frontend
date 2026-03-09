@@ -105,6 +105,9 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+
+  /* Push refresh button to far right */
+  .refresh-icon-btn { margin-left: auto; }
 }
 
 /* Search */
@@ -242,6 +245,59 @@
   white-space: nowrap;
 
   &:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+}
+
+/* Refresh icon button — sits at the end of the filter bar */
+.refresh-icon-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-base);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 150ms;
+  flex-shrink: 0;
+  margin-left: auto;
+
+  &:hover {
+    background: var(--accent-subtle);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+  }
+
+  &.spinning svg { animation: spin 0.8s linear infinite; }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Refresh icon button */
+.refresh-icon-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-base);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 150ms;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--accent-subtle);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+  }
+
+  &.spinning svg {
+    animation: spin 0.8s linear infinite;
+  }
 }
 
 /* ── Loading ─────────────────────────────────────────────────── */
@@ -471,7 +527,7 @@ $grid: minmax(220px, 2.5fr)
   align-items: center;
   gap: 4px;
   padding: 3px 8px 3px 5px;
-  // border: 1px solid var(--border-default);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--surface-base);
   font-size: 0.75rem;           /* ↑ was 0.625rem */
@@ -963,7 +1019,6 @@ mark {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   overflow: hidden;
 }
-
 
 
 

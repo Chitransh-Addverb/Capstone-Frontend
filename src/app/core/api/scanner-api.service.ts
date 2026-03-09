@@ -4,8 +4,6 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { API_ENDPOINTS } from './api.config';
 
-/* ── Response DTOs — snake_case matches Jackson @JsonNaming(SnakeCaseStrategy) ── */
-
 export interface ScannerDto {
   scanner_id: string;
   status: boolean;
@@ -19,11 +17,10 @@ export interface ScannerConfigDto {
   created_at: string;
 }
 
-/**
- * Request body for POST /api/v1/scanners/{scannerId}:activate
- * Uses camelCase because ActivateWorkflowRequest does NOT have @JsonNaming —
- * Jackson reads it as plain camelCase fields.
- */
+export interface CreateScannerRequest {
+  scanner_id: string;
+}
+
 export interface ActivateWorkflowRequest {
   workflow_key: string;
   version: number;
@@ -62,6 +59,13 @@ export class ScannerApiService {
       .pipe(map(r => r.data));
   }
 
+  /** POST /api/v1/scanners — Register a new scanner */
+  createScanner(payload: CreateScannerRequest): Observable<ScannerDto> {
+    return this.http
+      .post<ApiResponse<ScannerDto>>(API_ENDPOINTS.scanner.list, payload)
+      .pipe(map(r => r.data));
+  }
+
   /**
    * GET /api/v1/scanners/{scannerId}/config
    * Returns null if no active mapping exists (404 handled by caller via catchError).
@@ -89,6 +93,7 @@ export class ScannerApiService {
       .pipe(map(r => r.data));
   }
 }
+
 
 
 

@@ -103,6 +103,15 @@
         Reset
       </button>
     }
+
+    <!-- Refresh — always visible, pushed to the right -->
+    <button class="refresh-icon-btn" (click)="loadAll()" title="Refresh"
+            [class.spinning]="pageLoading()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+           stroke-width="1.75" stroke-linecap="round">
+        <path d="M1 6.5A5.5 5.5 0 1012 6.5M1 6.5V2.5M1 6.5H5"/>
+      </svg>
+    </button>
   </div>
 
   <!-- ── Loading ── -->
@@ -207,7 +216,7 @@
                          stroke-linecap="round" stroke-linejoin="round">
                       <path d="M2 3l3 3 3-3"/>
                     </svg>
-                    <span>{{ isExpanded(def.workflow_key) ? 'Version' : 'Version' }}</span>
+                    <span>{{ isExpanded(def.workflow_key) ? 'Hide' : 'History' }}</span>
                   </button>
                 </div>
 
@@ -264,7 +273,7 @@
                           Edit in Designer
                         </button>
 
-                        <!-- <button class="dropdown-item"
+                        <button class="dropdown-item"
                                 (click)="openDetail(def, $event)">
                           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
@@ -272,7 +281,7 @@
                             <circle cx="7" cy="7" r="1.75"/>
                           </svg>
                           View Details
-                        </button> -->
+                        </button>
 
                         <div class="dropdown-divider"></div>
 
@@ -339,7 +348,7 @@
                       </svg>
                       Version History — {{ def.workflow_key }}
                     </div>
-                    <!-- <button class="panel-close-btn"
+                    <button class="panel-close-btn"
                             (click)="toggleVersions(def.workflow_key, $event)"
                             title="Collapse">
                       <svg width="12" height="12" viewBox="0 0 10 10" fill="none"
@@ -347,7 +356,7 @@
                         <path d="M2 7l3-3 3 3"/>
                       </svg>
                       Collapse
-                    </button> -->
+                    </button>
                   </div>
 
                   @if (!loadedKeys().has(def.workflow_key)) {
@@ -475,5 +484,6 @@
     </div>
   </div>
 }
+
 
 

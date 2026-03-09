@@ -1,24 +1,118 @@
 <div class="scanner-page">
 
+  <!-- ── Page Header (matches definitions page style) ── -->
   <div class="page-header">
     <div class="page-header-left">
-      <div class="header-eyebrow"><span class="eyebrow-dot"></span>SCANNER CONTROL</div>
-      <h1 class="page-title">Scanner Mapping</h1>
-      <p class="page-subtitle">Assign workflow definitions to physical scanning units</p>
-    </div>
-    <div class="header-right">
-      <div class="live-indicator">
-        <span class="live-dot"></span>
-        <span>{{ rows().length }} units registered</span>
-      </div>
-      <button class="refresh-btn" (click)="loadAll()" title="Refresh">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+      <div class="page-icon">
+        <svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor"
              stroke-width="1.5" stroke-linecap="round">
-          <path d="M1 6.5A5.5 5.5 0 1012 6.5M1 6.5V2.5M1 6.5H5"/>
+          <rect x="2" y="5" width="14" height="9" rx="1.5"/>
+          <path d="M5 9h8M2 7h1M15 7h1"/>
         </svg>
+      </div>
+      <div>
+        <h1 class="page-title">Scanner Mapping</h1>
+        <p class="page-subtitle">Assign workflow definitions to physical scanning units</p>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-chip">
+        <span class="stat-value">{{ rows().length }}</span>
+        <span class="stat-label">Scanners</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-chip">
+        <span class="stat-dot mapped-dot"></span>
+        <span class="stat-value mapped-val">{{ mappedCount() }}</span>
+        <span class="stat-label">Mapped</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-chip">
+        <span class="stat-value">{{ unmappedCount() }}</span>
+        <span class="stat-label">Unmapped</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" (click)="openAddScanner()">
+      <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round">
+        <path d="M6.5 1v11M1 6.5h11"/>
+      </svg>
+      Add Scanner
+    </button>
+  </div>
+
+  <!-- ── Filter Bar (matches definitions page style) ── -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 14 14" fill="none"
+           stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="6" cy="6" r="4.5"/>
+        <path d="M9.5 9.5l3 3"/>
+      </svg>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Search scanners…"
+        [ngModel]="scannerSearch()"
+        (ngModelChange)="scannerSearch.set($event)"
+        autocomplete="off"
+      />
+      @if (scannerSearch()) {
+        <button class="search-clear" (click)="scannerSearch.set('')" title="Clear">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round">
+            <path d="M1 1l10 10M11 1L1 11"/>
+          </svg>
+        </button>
+      }
+    </div>
+
+    <div class="filter-pills">
+      <button class="pill" [class.pill-on]="mappingFilter() === 'all'"
+              (click)="mappingFilter.set('all')">All</button>
+      <button class="pill" [class.pill-on]="mappingFilter() === 'mapped'"
+              (click)="mappingFilter.set('mapped')">
+        <span class="pill-dot dot-mapped"></span>Mapped
+      </button>
+      <button class="pill" [class.pill-on]="mappingFilter() === 'unmapped'"
+              (click)="mappingFilter.set('unmapped')">
+        <span class="pill-dot dot-unmapped"></span>Unmapped
       </button>
     </div>
+
+    <div class="sort-wrap">
+      <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linecap="round">
+        <path d="M1 3h11M3 6.5h7M5 10h3"/>
+      </svg>
+      <select class="sort-select" [ngModel]="scannerSort()" (ngModelChange)="scannerSort.set($event)">
+        <option value="id">Scanner ID</option>
+        <option value="mapped">Mapped first</option>
+        <option value="status">Online first</option>
+      </select>
+    </div>
+
+    @if (hasScannerFilters()) {
+      <button class="reset-btn" (click)="clearScannerFilters()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 6A5 5 0 1011 6M1 6V2M1 6H5"/>
+        </svg>
+        Reset
+      </button>
+    }
+
+    <button class="refresh-icon-btn" (click)="loadAll()" title="Refresh"
+            [class.spinning]="loading()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+           stroke-width="1.75" stroke-linecap="round">
+        <path d="M1 6.5A5.5 5.5 0 1012 6.5M1 6.5V2.5M1 6.5H5"/>
+      </svg>
+    </button>
   </div>
+
 
   @if (loading()) {
     <div class="loading-state">
@@ -40,21 +134,6 @@
   }
 
   @if (!loading() && !error()) {
-    <div class="stats-bar">
-      <div class="stat-pill">
-        <span class="stat-pill-value">{{ rows().length }}</span>
-        <span class="stat-pill-label">Total</span>
-      </div>
-      <div class="stat-pill mapped">
-        <span class="stat-pill-dot"></span>
-        <span class="stat-pill-value">{{ mappedCount() }}</span>
-        <span class="stat-pill-label">Mapped</span>
-      </div>
-      <div class="stat-pill unmapped">
-        <span class="stat-pill-value">{{ unmappedCount() }}</span>
-        <span class="stat-pill-label">Unmapped</span>
-      </div>
-    </div>
 
     @if (rows().length === 0) {
       <div class="empty-scanners">
@@ -63,13 +142,25 @@
           <rect x="4" y="8" width="28" height="20" rx="3"/>
           <path d="M11 18h14"/>
         </svg>
-        <p>No scanners registered in the system.</p>
+        <p>No scanners registered yet.</p>
+        <button class="btn btn-primary" style="margin-top:4px" (click)="openAddScanner()">Add First Scanner</button>
       </div>
     }
 
-    @if (rows().length > 0) {
+    @if (rows().length > 0 && filteredRows().length === 0) {
+      <div class="empty-scanners">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor"
+             stroke-width="1.2" stroke-linecap="round">
+          <circle cx="14" cy="14" r="9"/><path d="M21.5 21.5l7 7"/>
+        </svg>
+        <p>No scanners match your filters.</p>
+        <button class="reset-btn" style="margin-top:4px" (click)="clearScannerFilters()">Clear filters</button>
+      </div>
+    }
+
+    @if (filteredRows().length > 0) {
       <div class="scanners-grid">
-        @for (row of rows(); track row.scanner.scanner_id) {
+        @for (row of filteredRows(); track row.scanner.scanner_id) {
           <div class="scanner-card" [class.is-mapped]="!!row.config"
                [class.is-inactive]="!row.scanner.status">
 
@@ -396,4 +487,78 @@
     </div>
   </div>
 }
+
+
+<!-- ══════════════════════════ ADD SCANNER MODAL ══════════════════════════ -->
+@if (showAddScanner()) {
+  <div class="modal-backdrop" (click)="cancelAddScanner()">
+    <div class="confirm-modal add-scanner-modal" (click)="$event.stopPropagation()">
+
+      <div class="confirm-icon add-icon">
+        <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <rect x="2" y="5" width="13" height="9" rx="1.5"/>
+          <path d="M6 10h5M15 7h3M15 10h3M15 13h3"/>
+        </svg>
+      </div>
+
+      <h3 class="confirm-title">Register New Scanner</h3>
+      <p class="confirm-desc">
+        Enter the Scanner ID exactly as it appears on the physical unit.
+      </p>
+
+      <div class="add-scanner-field" style="margin-top:20px">
+        <label class="add-field-label">Scanner ID</label>
+        <input
+          class="add-field-input"
+          [class.has-error]="!!addScannerError()"
+          type="text"
+          placeholder="e.g. SC-001, UNIT-07…"
+          [ngModel]="newScannerId()"
+          (ngModelChange)="newScannerId.set($event); addScannerError.set(null)"
+          (keydown.enter)="confirmAddScanner()"
+          autocomplete="off"
+        />
+        @if (addScannerError()) {
+          <span class="add-field-error">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
+              <circle cx="6" cy="6" r="4.5"/><path d="M6 4v3M6 8.5v.5"/>
+            </svg>
+            {{ addScannerError() }}
+          </span>
+        }
+      </div>
+
+      <!-- Default status hint -->
+      <div class="add-scanner-status-row" style="margin-top:12px">
+        <span class="add-status-label">Initial status</span>
+        <span class="add-status-badge">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--border-default);display:inline-block;flex-shrink:0"></span>
+          Inactive
+        </span>
+      </div>
+
+      <div class="confirm-actions" style="margin-top:24px">
+        <button class="btn btn-ghost" (click)="cancelAddScanner()"
+                [disabled]="addingScanner()">Cancel</button>
+        <button class="btn btn-primary" (click)="confirmAddScanner()"
+                [disabled]="!newScannerId().trim() || addingScanner()">
+          @if (addingScanner()) {
+            <span class="wf-spinner"></span> Registering…
+          } @else {
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+                 stroke-width="1.75" stroke-linecap="round">
+              <path d="M6.5 1v11M1 6.5h11"/>
+            </svg>
+            Register Scanner
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+
 
