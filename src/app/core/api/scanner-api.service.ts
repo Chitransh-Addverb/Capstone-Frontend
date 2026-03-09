@@ -25,7 +25,7 @@ export interface ScannerConfigDto {
  * Jackson reads it as plain camelCase fields.
  */
 export interface ActivateWorkflowRequest {
-  workflow_key: string;   // camelCase — matches Java field name
+  workflow_key: string;
   version: number;
   activate: boolean;
 }

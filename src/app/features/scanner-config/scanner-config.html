@@ -79,7 +79,6 @@
               <div class="card-status-light" [class.on]="row.scanner.status"></div>
             </div>
 
-            <!-- ── Card Info (no middle SVG) ── -->
             <div class="card-info">
               <div class="info-row">
                 <span class="info-key">STATUS</span>
@@ -153,6 +152,7 @@
   <div class="drawer-overlay" (click)="cancelAssign()">
     <div class="drawer" (click)="$event.stopPropagation()">
 
+      <!-- Drawer Header -->
       <div class="drawer-header">
         <div class="drawer-header-top">
           <div class="drawer-eyebrow">
@@ -185,6 +185,7 @@
         </div>
       </div>
 
+      <!-- Drawer Body — scrollable -->
       <div class="drawer-body">
 
         @if (allWorkflows().length === 0 && !workflowsLoading()) {
@@ -199,104 +200,127 @@
           </div>
         } @else {
 
-          <!-- Step 1: Select Workflow with search -->
-          <div class="drawer-section-label">SELECT WORKFLOW</div>
+          <!-- ── Step 1: Workflow Key ── -->
+          <div class="drawer-step">
+            <div class="step-label">
+              <span class="step-number">1</span>
+              SELECT WORKFLOW
+            </div>
 
-          <!-- Workflow search bar -->
-          <div class="wf-search-wrap">
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
-                 stroke-width="1.5" stroke-linecap="round">
-              <circle cx="5.5" cy="5.5" r="4"/><path d="M8.5 8.5l3 3"/>
-            </svg>
-            <input class="wf-search-input" type="text" placeholder="Search workflows…"
-                   [ngModel]="wfSearch()" (ngModelChange)="wfSearch.set($event)"
-                   autocomplete="off" />
-            @if (wfSearch()) {
-              <button class="wf-search-clear" (click)="wfSearch.set('')">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor"
-                     stroke-width="1.5" stroke-linecap="round">
-                  <path d="M1 1l8 8M9 1L1 9"/>
-                </svg>
-              </button>
+            <div class="wf-search-wrap">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+                   stroke-width="1.5" stroke-linecap="round">
+                <circle cx="5.5" cy="5.5" r="4"/><path d="M8.5 8.5l3 3"/>
+              </svg>
+              <input class="wf-search-input" type="text" placeholder="Search workflows…"
+                     [ngModel]="wfSearch()" (ngModelChange)="wfSearch.set($event)"
+                     autocomplete="off" />
+              @if (wfSearch()) {
+                <button class="wf-search-clear" (click)="wfSearch.set('')">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor"
+                       stroke-width="1.5" stroke-linecap="round">
+                    <path d="M1 1l8 8M9 1L1 9"/>
+                  </svg>
+                </button>
+              }
+            </div>
+
+            @if (workflowsLoading()) {
+              <div class="wf-loading">
+                <span class="wf-spinner"></span> Loading workflows…
+              </div>
+            } @else {
+              @if (filteredWorkflows().length === 0) {
+                <div class="wf-no-results">No workflows match "{{ wfSearch() }}"</div>
+              } @else {
+                <!-- One row per unique workflow_key — name only -->
+                <div class="workflow-options">
+                  @for (wf of filteredWorkflows(); track wf.workflow_key) {
+                    <div class="workflow-option"
+                         [class.selected]="drawer()!.selectedKey === wf.workflow_key"
+                         (click)="selectWorkflowKey(wf.workflow_key)">
+                      <div class="workflow-option-left">
+                        <div class="workflow-option-avatar"
+                             [class.avatar-selected]="drawer()!.selectedKey === wf.workflow_key">
+                          {{ getAvatarLetter(wf.workflow_key) }}
+                        </div>
+                        <!-- Only the key name — no description, no version, no status -->
+                        <span class="workflow-option-key">{{ wf.workflow_key }}</span>
+                      </div>
+                      @if (drawer()!.selectedKey === wf.workflow_key) {
+                        <svg class="check-icon" width="14" height="14" viewBox="0 0 14 14"
+                             fill="none" stroke="currentColor" stroke-width="2.5"
+                             stroke-linecap="round">
+                          <path d="M2 7l3.5 3.5L12 3"/>
+                        </svg>
+                      }
+                    </div>
+                  }
+                </div>
+              }
             }
           </div>
 
-          @if (workflowsLoading()) {
-            <div class="wf-loading">
-              <span class="wf-spinner"></span> Loading workflows…
-            </div>
-          } @else {
-            <div class="workflow-options">
-              @if (filteredWorkflows().length === 0) {
-                <div class="wf-no-results">No workflows match "{{ wfSearch() }}"</div>
-              }
-              @for (wf of filteredWorkflows(); track wf.workflow_key) {
-                <div class="workflow-option"
-                     [class.selected]="drawer()!.selectedKey === wf.workflow_key"
-                     (click)="selectWorkflowKey(wf.workflow_key)">
-                  <div class="workflow-option-left">
-                    <div class="workflow-option-avatar"
-                         [class.avatar-selected]="drawer()!.selectedKey === wf.workflow_key">
-                      {{ getAvatarLetter(wf.workflow_key) }}
-                    </div>
-                    <div class="workflow-option-info">
-                      <span class="workflow-option-key">{{ wf.workflow_key }}</span>
-                      @if (wf.description) {
-                        <span class="workflow-option-desc">
-                          {{ wf.description.length > 46 ? (wf.description | slice:0:46) + '…' : wf.description }}
+          <!-- ── Step 2: Version (only shown after workflow selected) ── -->
+          @if (drawer()!.selectedKey) {
+            <div class="drawer-step">
+              <div class="step-label">
+                <span class="step-number">2</span>
+                SELECT VERSION
+                <span class="step-key-hint">{{ drawer()!.selectedKey }}</span>
+              </div>
+
+              @if (versionsForKey().length === 0) {
+                <div class="wf-loading">
+                  <span class="wf-spinner"></span> Loading versions…
+                </div>
+              } @else {
+                <div class="version-options">
+                  @for (ver of versionsForKey(); track ver.version) {
+                    <div class="version-option"
+                         [class.selected]="drawer()!.selectedVersion === ver.version"
+                         (click)="selectVersion(ver.version)">
+
+                      <div class="version-option-left">
+                        <span class="version-option-tag"
+                              [class.ver-tag-selected]="drawer()!.selectedVersion === ver.version">
+                          v{{ ver.version }}
                         </span>
-                      }
+                        <span class="ver-status-chip" [class.chip-active]="ver.is_active">
+                          @if (ver.is_active) {
+                            <span class="ver-status-dot ver-active"></span>Active
+                          } @else {
+                            <span class="ver-status-dot"></span>Inactive
+                          }
+                        </span>
+                      </div>
+
+                      <div class="version-option-right">
+                        <span class="ver-date">{{ formatDate(ver.created_at) }}</span>
+                        @if (drawer()!.selectedVersion === ver.version) {
+                          <svg class="check-icon" width="13" height="13" viewBox="0 0 14 14"
+                               fill="none" stroke="currentColor" stroke-width="2.5"
+                               stroke-linecap="round">
+                            <path d="M2 7l3.5 3.5L12 3"/>
+                          </svg>
+                        }
+                      </div>
+
                     </div>
-                  </div>
-                  @if (drawer()!.selectedKey === wf.workflow_key) {
-                    <svg class="check-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                      <path d="M2 7l3.5 3.5L12 3"/>
-                    </svg>
                   }
                 </div>
+                <p class="ver-hint">
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+                       stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <circle cx="6" cy="6" r="4.5"/><path d="M6 4v3M6 8.5v.5"/>
+                  </svg>
+                  Saving the mapping will activate the selected version automatically.
+                </p>
               }
             </div>
           }
 
-          <!-- Step 2: Select Version (no activate button — mapping activates it) -->
-          @if (drawer()!.selectedKey && versionsForKey().length > 0) {
-            <div class="drawer-section-label" style="margin-top:20px">SELECT VERSION</div>
-            <div class="version-options">
-              @for (ver of versionsForKey(); track ver.version) {
-                <div class="version-option"
-                     [class.selected]="drawer()!.selectedVersion === ver.version"
-                     (click)="selectVersion(ver.version)">
-                  <span class="version-option-tag">v{{ ver.version }}</span>
-                  <!-- Show active/inactive as read-only indicator only — no button -->
-                  <span class="ver-status-dot" [class.ver-active]="ver.is_active"
-                        [title]="ver.is_active ? 'Currently active' : 'Inactive'"></span>
-                  @if (drawer()!.selectedVersion === ver.version) {
-                    <svg class="check-icon" width="13" height="13" viewBox="0 0 14 14" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                         style="margin-left:auto">
-                      <path d="M2 7l3.5 3.5L12 3"/>
-                    </svg>
-                  }
-                </div>
-              }
-            </div>
-            <p class="ver-hint">
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-                   stroke-width="1.5" stroke-linecap="round">
-                <circle cx="6" cy="6" r="4.5"/><path d="M6 4v3M6 8.5v.5"/>
-              </svg>
-              Saving the mapping will activate the selected version automatically.
-            </p>
-          }
-
-          @if (drawer()!.selectedKey && versionsForKey().length === 0 && !workflowsLoading()) {
-            <div class="wf-loading" style="margin-top:14px">
-              <span class="wf-spinner"></span> Loading versions…
-            </div>
-          }
-
-          <!-- Assignment preview -->
+          <!-- ── Assignment Preview ── -->
           @if (drawer()!.selectedKey && drawer()!.selectedVersion) {
             <div class="assignment-preview">
               <div class="preview-from">
@@ -304,8 +328,8 @@
                 <span class="preview-value">{{ drawer()!.scanner.scanner_id }}</span>
               </div>
               <div class="preview-arrow">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-                     stroke-width="1.5" stroke-linecap="round">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                   <path d="M4 10h12M12 6l4 4-4 4"/>
                 </svg>
               </div>
@@ -322,6 +346,7 @@
         }
       </div>
 
+      <!-- Drawer Footer -->
       <div class="drawer-footer">
         <button class="drawer-cancel" (click)="cancelAssign()" [disabled]="saving()">Cancel</button>
         <button class="drawer-confirm" (click)="confirmAssign()"
@@ -371,7 +396,4 @@
     </div>
   </div>
 }
-
-
-
 

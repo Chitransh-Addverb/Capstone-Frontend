@@ -2,6 +2,7 @@ import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { WorkflowDefinitionService } from '../../core/services/workflow-definition.service';
+import { ScannerApiService } from '../../core/api/scanner-api.service';
 
 export interface QuickAction {
   label:    string;
@@ -19,6 +20,7 @@ export interface QuickAction {
 export class Dashboard {
 
   workflowService = inject(WorkflowDefinitionService);
+  scannerService = inject(ScannerApiService);
 
   totalWorkflows = computed(() =>
     this.workflowService.latestVersions().length,

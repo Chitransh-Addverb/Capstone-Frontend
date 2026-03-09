@@ -40,22 +40,39 @@ export class ScannerConfig implements OnInit {
   loading = signal(true);
   error   = signal<string | null>(null);
 
-  // ── Workflow list (fetched from backend) ─────────────────────────
-  allWorkflows    = signal<WorkflowDefinitionDto[]>([]);
-  wfSearch        = signal('');
+  // ── Workflow list ─────────────────────────────────────────────────
+  allWorkflows     = signal<WorkflowDefinitionDto[]>([]);
+  wfSearch         = signal('');
   workflowsLoading = signal(false);
 
-  /** Filtered by search */
+  /**
+   * Deduplicated list — ONE entry per workflow_key (the latest version).
+   * Used for Step 1 (workflow picker). Shows only the name, nothing else.
+   */
+  uniqueWorkflows = computed(() => {
+    const all = this.allWorkflows();
+    // Keep only the first occurrence of each workflow_key
+    // (listAll should already return latest-per-key, but deduplicate defensively)
+    const seen = new Set<string>();
+    return all.filter(w => {
+      if (seen.has(w.workflow_key)) return false;
+      seen.add(w.workflow_key);
+      return true;
+    });
+  });
+
+  /** Unique workflows filtered by search query */
   filteredWorkflows = computed(() => {
     const q = this.wfSearch().trim().toLowerCase();
-    if (!q) return this.allWorkflows();
-    return this.allWorkflows().filter(w =>
+    const unique = this.uniqueWorkflows();
+    if (!q) return unique;
+    return unique.filter(w =>
       w.workflow_key.toLowerCase().includes(q) ||
       w.description?.toLowerCase().includes(q),
     );
   });
 
-  /** All versions for selected key in drawer */
+  /** All versions for the selected key — used in Step 2 */
   versionsForKey = signal<WorkflowDefinitionDto[]>([]);
 
   // ── Drawer ────────────────────────────────────────────────────────
@@ -109,7 +126,6 @@ export class ScannerConfig implements OnInit {
     });
   }
 
-  /** Load all workflow definitions (latest version per key) from backend */
   loadWorkflows(): void {
     this.workflowsLoading.set(true);
     this.workflowApi.listAll().subscribe({
@@ -117,13 +133,10 @@ export class ScannerConfig implements OnInit {
         this.allWorkflows.set(dtos);
         this.workflowsLoading.set(false);
       },
-      error: () => {
-        this.workflowsLoading.set(false);
-      },
+      error: () => this.workflowsLoading.set(false),
     });
   }
 
-  /** Load all versions for a workflow key (for version picker in drawer) */
   loadVersionsForKey(key: string): void {
     this.versionsForKey.set([]);
     this.workflowApi.listVersionsByKey(key).subscribe({
@@ -134,16 +147,15 @@ export class ScannerConfig implements OnInit {
 
   // ── Drawer ────────────────────────────────────────────────────────
   openAssign(row: ScannerRow): void {
-    const existing = row.config;
-    const firstWf  = this.allWorkflows()[0];
-
+    const existing   = row.config;
+    const firstWf    = this.uniqueWorkflows()[0];
     const selectedKey = existing?.workflow_key ?? firstWf?.workflow_key ?? '';
 
     this.drawer.set({
       scanner: row.scanner,
       existingConfig: existing,
       selectedKey,
-      selectedVersion: existing?.version ?? firstWf?.version ?? 1,
+      selectedVersion: existing?.version ?? 0,
     });
     this.showDrawer.set(true);
 
@@ -153,6 +165,7 @@ export class ScannerConfig implements OnInit {
   selectWorkflowKey(key: string): void {
     const d = this.drawer();
     if (!d) return;
+    // Reset version when switching workflow
     this.drawer.set({ ...d, selectedKey: key, selectedVersion: 0 });
     this.loadVersionsForKey(key);
   }
@@ -163,25 +176,17 @@ export class ScannerConfig implements OnInit {
     this.drawer.set({ ...d, selectedVersion: version });
   }
 
-  /**
-   * Confirm mapping:
-   * 1. Activate scanner → workflow mapping
-   * 2. Also call setActive on the workflow version (is_active: true)
-   * No separate activate button needed — mapping = activation.
-   */
   confirmAssign(): void {
     const d = this.drawer();
     if (!d?.selectedKey || !d.selectedVersion) return;
     this.saving.set(true);
 
-    // Step 1: Activate scanner mapping
     this.scannerApi.activateWorkflow(d.scanner.scanner_id, {
       workflow_key: d.selectedKey,
       version: d.selectedVersion,
       activate: true,
     }).subscribe({
       next: (res) => {
-        // Step 2: Also activate the workflow version itself
         this.workflowApi.setActive(d.selectedKey, d.selectedVersion, true).subscribe({
           next: () => {
             this.toast.success(
@@ -194,11 +199,7 @@ export class ScannerConfig implements OnInit {
             this.loadWorkflows();
           },
           error: () => {
-            // Mapping succeeded but activation call failed — still show partial success
-            this.toast.success(
-              'Mapping saved',
-              `${res.scanner_id} → ${res.workflow_key} v${res.version} (activation pending)`,
-            );
+            this.toast.success('Mapping saved', `${res.scanner_id} → ${res.workflow_key} v${res.version} (activation pending)`);
             this.showDrawer.set(false);
             this.saving.set(false);
             this.loadAll();
@@ -220,9 +221,7 @@ export class ScannerConfig implements OnInit {
   }
 
   // ── Detach ────────────────────────────────────────────────────────
-  openDetach(row: ScannerRow): void {
-    this.detachTarget.set(row);
-  }
+  openDetach(row: ScannerRow): void { this.detachTarget.set(row); }
 
   confirmDetach(): void {
     const target = this.detachTarget();
@@ -260,5 +259,6 @@ export class ScannerConfig implements OnInit {
     return (key ?? '?').charAt(0).toUpperCase();
   }
 }
+
 
 
