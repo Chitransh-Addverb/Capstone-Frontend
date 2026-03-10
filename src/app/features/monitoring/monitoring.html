@@ -1,168 +1,163 @@
-<div class="ops-shell">
+<div class="mon-shell">
 
-  <!-- ══════════════════════════════════════════════════════════
-       LEFT RAIL
-  ══════════════════════════════════════════════════════════════ -->
-  <aside class="ops-rail">
+  <!-- ══════════════════  RAIL  ══════════════════ -->
+  <aside class="mon-rail">
 
-    <!-- Rail top bar -->
-    <div class="rail-topbar">
-      <div class="rail-brand">
-        <div class="brand-icon">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
-               stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1"/>
-            <rect x="8" y="1.5" width="4.5" height="4.5" rx="1"/>
-            <rect x="1.5" y="8" width="4.5" height="4.5" rx="1"/>
-            <rect x="8" y="8" width="4.5" height="4.5" rx="1"/>
-          </svg>
+    <!-- Rail header -->
+    <div class="rail-head">
+      <div class="rail-head-top">
+        <div class="rail-title-group">
+          <div class="rail-icon-wrap">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                 stroke-width="1.6" stroke-linecap="round">
+              <circle cx="8" cy="8" r="6.5"/>
+              <path d="M8 5v3.5l2.5 1.5"/>
+            </svg>
+          </div>
+          <span class="rail-title">Live Monitor</span>
         </div>
-        <span class="brand-label">Operations</span>
+        <div class="live-pill">
+          <span class="live-dot"></span>
+          LIVE
+        </div>
       </div>
-      <div class="live-pill">
-        <span class="live-pip"></span>
-        LIVE
+
+      <!-- Stat counters -->
+      <div class="rail-stats">
+        <button class="stat-btn" [class.stat-active]="statusFilter() === 'ALL'" (click)="setFilter('ALL')">
+          <span class="stat-num">{{ instances().length }}</span>
+          <span class="stat-lbl">All</span>
+        </button>
+        <button class="stat-btn stat-amber" [class.stat-active]="statusFilter() === 'ACTIVE'" (click)="setFilter('ACTIVE')">
+          <span class="stat-num">{{ ACTIVECount() }}</span>
+          <span class="stat-lbl">ACTIVE</span>
+        </button>
+        <button class="stat-btn stat-green" [class.stat-active]="statusFilter() === 'COMPLETED'" (click)="setFilter('COMPLETED')">
+          <span class="stat-num">{{ completedCount() }}</span>
+          <span class="stat-lbl">Done</span>
+        </button>
+        <button class="stat-btn stat-red" [class.stat-active]="statusFilter() === 'FAILED'" (click)="setFilter('FAILED')">
+          <span class="stat-num">{{ failedCount() }}</span>
+          <span class="stat-lbl">Failed</span>
+        </button>
       </div>
-    </div>
 
-    <!-- Stat strip -->
-    <div class="stat-strip">
-      <button class="stat-cell"
-              [class.stat-active]="statusFilter() === 'ALL'"
-              (click)="setFilter('ALL')">
-        <span class="stat-val">{{ instances().length }}</span>
-        <span class="stat-key">Total</span>
-      </button>
-      <button class="stat-cell stat-amber"
-              [class.stat-active]="statusFilter() === 'ACTIVE'"
-              (click)="setFilter('ACTIVE')">
-        <span class="stat-val">{{ ACTIVECount() }}</span>
-        <span class="stat-key">ACTIVE</span>
-      </button>
-      <button class="stat-cell stat-green"
-              [class.stat-active]="statusFilter() === 'COMPLETED'"
-              (click)="setFilter('COMPLETED')">
-        <span class="stat-val">{{ completedCount() }}</span>
-        <span class="stat-key">Done</span>
-      </button>
-      <button class="stat-cell stat-red"
-              [class.stat-active]="statusFilter() === 'FAILED'"
-              (click)="setFilter('FAILED')">
-        <span class="stat-val">{{ failedCount() }}</span>
-        <span class="stat-key">Failed</span>
-      </button>
-    </div>
-
-    <!-- Tab row + search -->
-    <div class="rail-controls">
-      <div class="tab-row">
-        <button class="tab-btn" [class.tab-on]="activeTab() === 'live'"
-                (click)="setTab('live')">
+      <!-- Tabs -->
+      <div class="rail-tabs">
+        <button class="rail-tab" [class.rail-tab-on]="activeTab() === 'live'" (click)="setTab('live')">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 4v3l2 1.5"/>
+          </svg>
           Instances
         </button>
-        <button class="tab-btn" [class.tab-on]="activeTab() === 'history'"
-                (click)="setTab('history')">
+        <button class="rail-tab" [class.rail-tab-on]="activeTab() === 'history'" (click)="setTab('history')">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M1.5 6.5A5 5 0 1011.5 6.5M1.5 6.5V2.5M1.5 6.5h4"/>
+          </svg>
           History
         </button>
       </div>
 
-      <div class="search-bar">
-        <svg class="search-ico" width="12" height="12" viewBox="0 0 12 12" fill="none"
-             stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <circle cx="5" cy="5" r="3.5"/><path d="M8 8l2.5 2.5"/>
+      <!-- Search -->
+      <div class="rail-search">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <circle cx="6" cy="6" r="4.5"/><path d="M9.5 9.5l3 3"/>
         </svg>
         @if (activeTab() === 'live') {
-          <input class="search-input" type="text" placeholder="Scanner, barcode, ID…"
-                 autocomplete="off"
-                 [ngModel]="searchQuery()"
-                 (ngModelChange)="searchQuery.set($event)"/>
+          <input class="rail-search-input" type="text" placeholder="Scanner ID, barcode…"
+                 autocomplete="off" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"/>
           @if (searchQuery()) {
-            <button class="search-x" (click)="searchQuery.set('')">✕</button>
+            <button class="search-clear" (click)="searchQuery.set('')">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M1 1l8 8M9 1L1 9"/>
+              </svg>
+            </button>
           }
         } @else {
-          <input class="search-input" type="text" placeholder="Filter by scanner ID…"
-                 autocomplete="off"
-                 [ngModel]="historySearch()"
-                 (ngModelChange)="historySearch.set($event)"
+          <input class="rail-search-input" type="text" placeholder="Filter by scanner…"
+                 autocomplete="off" [ngModel]="historySearch()" (ngModelChange)="historySearch.set($event)"
                  (keydown.enter)="onHistorySearch()"/>
           @if (historySearch()) {
-            <button class="search-x" (click)="historySearch.set(''); onHistorySearch()">✕</button>
+            <button class="search-clear" (click)="historySearch.set(''); onHistorySearch()">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M1 1l8 8M9 1L1 9"/>
+              </svg>
+            </button>
           }
         }
       </div>
     </div>
 
-    <!-- ── INSTANCES LIST ── -->
+    <!-- ── INSTANCES ── -->
     @if (activeTab() === 'live') {
       @if (loadingLive()) {
         <div class="rail-center">
-          <div class="loader-dots"><span></span><span></span><span></span></div>
-          <p>Loading instances…</p>
+          <div class="dot-loader"><span></span><span></span><span></span></div>
+          <p class="rail-center-msg">Loading instances…</p>
         </div>
       } @else if (liveError()) {
-        <div class="rail-center error-state">
-          <div class="error-icon">!</div>
-          <p>{{ liveError() }}</p>
-          <button class="retry-btn" (click)="loadLive()">Retry</button>
+        <div class="rail-center">
+          <div class="err-circle">!</div>
+          <p class="rail-center-msg">{{ liveError() }}</p>
+          <button class="btn-retry" (click)="loadLive()">Retry</button>
         </div>
       } @else if (filteredInstances().length === 0) {
         <div class="rail-center">
-          <div class="empty-glyph">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor"
-                 stroke-width="1.2" stroke-linecap="round">
-              <circle cx="16" cy="16" r="12"/>
-              <circle cx="16" cy="16" r="6"/>
-              <circle cx="16" cy="16" r="1" fill="currentColor"/>
-            </svg>
-          </div>
-          <p>No instances found</p>
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" class="empty-icon">
+            <circle cx="20" cy="20" r="15"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="2" fill="currentColor"/>
+          </svg>
+          <p class="rail-center-msg">No instances found</p>
         </div>
       } @else {
         <div class="inst-list">
           @for (inst of filteredInstances(); track inst.dto.id) {
-            <button class="inst-row"
+            <button class="inst-card"
                     [class.inst-selected]="selectedId() === inst.dto.id"
                     [class.inst-ACTIVE]="inst.dto.status === 'ACTIVE'"
                     [class.inst-done]="inst.dto.status === 'COMPLETED'"
                     [class.inst-failed]="inst.dto.status === 'FAILED'"
                     (click)="selectInstance(inst.dto.id)">
 
-              <!-- Left accent bar -->
-              <div class="row-bar"></div>
+              <div class="inst-card-bar"></div>
 
-              <!-- Status glow dot -->
-              <div class="row-dot">
-                @if (inst.dto.status === 'ACTIVE') {
-                  <div class="dot-halo"></div>
-                }
-              </div>
+              <div class="inst-card-inner">
+                <div class="inst-top">
+                  <div class="inst-dot-wrap">
+                    <div class="inst-dot"
+                         [class.dot-ACTIVE]="inst.dto.status === 'ACTIVE'"
+                         [class.dot-done]="inst.dto.status === 'COMPLETED'"
+                         [class.dot-failed]="inst.dto.status === 'FAILED'">
+                    </div>
+                    @if (inst.dto.status === 'ACTIVE') {
+                      <div class="inst-dot-ring"></div>
+                    }
+                  </div>
+                  <div class="inst-info">
+                    <span class="inst-scanner">{{ inst.vars.scanner_id ?? '—' }}</span>
+                    <span class="inst-id">#{{ inst.dto.id }}</span>
+                  </div>
+                  <div class="inst-right-meta">
+                    @if (inst.dto.status === 'ACTIVE') {
+                      <span class="inst-timer">{{ fmtElapsed(inst.elapsed) }}</span>
+                    } @else if (inst.dto.status === 'COMPLETED') {
+                      <span class="inst-lane-badge">{{ inst.vars.finalLane ?? 'Done' }}</span>
+                    } @else {
+                      <span class="inst-fail-badge">Failed</span>
+                    }
+                  </div>
+                </div>
 
-              <!-- Content -->
-              <div class="row-content">
-                <div class="row-line1">
-                  <span class="row-scanner">{{ inst.vars.scanner_id ?? '—' }}</span>
-                  <span class="row-id">#{{ inst.dto.id }}</span>
-                </div>
-                <div class="row-line2">
-                  <span class="row-barcode">{{ inst.vars.barcode ?? 'No barcode' }}</span>
-                  @if (inst.dto.status === 'ACTIVE') {
-                    <span class="row-elapsed">{{ fmtElapsed(inst.elapsed) }}</span>
-                  } @else if (inst.dto.status === 'COMPLETED') {
-                    <span class="row-lane">{{ inst.vars.finalLane ?? 'Done' }}</span>
-                  } @else {
-                    <span class="row-err">Failed</span>
-                  }
-                </div>
+                <div class="inst-barcode">{{ inst.vars.barcode ?? 'No barcode' }}</div>
 
                 @if (inst.dto.status === 'ACTIVE' && inst.vars.nextStep) {
-                  <div class="row-next">
-                    <span class="next-chevron">›</span>
+                  <div class="inst-next">
+                    <span class="inst-next-arrow">›</span>
                     {{ stepLabel(inst.vars.nextStep) }}
                   </div>
                 }
 
                 @if (inst.dto.status === 'ACTIVE') {
-                  <div class="row-worm"><div class="worm-fill"></div></div>
+                  <div class="inst-progress"><div class="inst-progress-fill"></div></div>
                 }
               </div>
             </button>
@@ -171,30 +166,31 @@
       }
     }
 
-    <!-- ── HISTORY LIST ── -->
+    <!-- ── HISTORY ── -->
     @if (activeTab() === 'history') {
       @if (loadingHistory()) {
         <div class="rail-center">
-          <div class="loader-dots"><span></span><span></span><span></span></div>
+          <div class="dot-loader"><span></span><span></span><span></span></div>
         </div>
       } @else if (scanEvents().length === 0) {
         <div class="rail-center">
-          <p>No scan events yet</p>
+          <p class="rail-center-msg">No scan events yet</p>
         </div>
       } @else {
         <div class="hist-list">
           @for (ev of scanEvents(); track ev.id) {
-            <div class="hist-item" [class.hist-open]="expandedEvent() === ev.id"
+            <div class="hist-row"
+                 [class.hist-row-open]="expandedEvent() === ev.id"
                  (click)="toggleEvent(ev.id)">
-              <div class="hist-bar"
+              <div class="hist-row-bar"
                    [class.hbar-ok]="ev.execution_status === 'COMPLETED'"
                    [class.hbar-fail]="ev.execution_status === 'FAILED'"></div>
-              <div class="hist-body">
-                <div class="hist-line1">
+              <div class="hist-row-body">
+                <div class="hist-row-top">
                   <span class="hist-scanner">{{ ev.scanner_id }}</span>
-                  <span class="hist-ts">{{ fmtTime(ev.scanned_at) }}</span>
+                  <span class="hist-time">{{ fmtTime(ev.scanned_at) }}</span>
                 </div>
-                <div class="hist-line2">
+                <div class="hist-row-mid">
                   <span class="hist-barcode">{{ ev.barcode }}</span>
                   @if (ev.lane_name) {
                     <span class="hist-lane">{{ ev.lane_name }}</span>
@@ -217,292 +213,266 @@
                   </div>
                 }
               </div>
-              <div class="hist-chevron" [class.hist-open-chev]="expandedEvent() === ev.id">›</div>
+              <div class="hist-chev" [class.hist-chev-open]="expandedEvent() === ev.id">›</div>
             </div>
           }
         </div>
-
-        <!-- Pagination -->
         <div class="hist-pager">
-          <button class="pager-btn" [disabled]="historyPage() === 0" (click)="historyPrev()">
-            ‹
-          </button>
-          <span class="pager-label">{{ historyPage() + 1 }} / {{ historyPages() }}
-            <em>{{ historyTotal() }} events</em>
+          <button class="pager-btn" [disabled]="historyPage() === 0" (click)="historyPrev()">‹</button>
+          <span class="pager-info">
+            {{ historyPage() + 1 }} / {{ historyPages() }}
+            <em>{{ historyTotal() }} total</em>
           </span>
-          <button class="pager-btn" [disabled]="historyPage() >= historyPages() - 1"
-                  (click)="historyNext()">
-            ›
-          </button>
+          <button class="pager-btn" [disabled]="historyPage() >= historyPages() - 1" (click)="historyNext()">›</button>
         </div>
       }
     }
 
   </aside>
 
-  <!-- ══════════════════════════════════════════════════════════
-       MAIN DETAIL PANEL
-  ══════════════════════════════════════════════════════════════ -->
-  <main class="ops-main">
+  <!-- ══════════════════  DETAIL  ══════════════════ -->
+  <main class="mon-detail">
 
-    <!-- ── EMPTY STATE ── -->
+    <!-- Empty state -->
     @if (!selectedInstance()) {
-      <div class="main-empty">
-        <div class="radar-wrap">
-          <div class="radar-c c1"></div>
-          <div class="radar-c c2"></div>
-          <div class="radar-c c3"></div>
+      <div class="detail-empty">
+        <div class="radar">
+          <div class="radar-ring rr1"></div>
+          <div class="radar-ring rr2"></div>
+          <div class="radar-ring rr3"></div>
           <div class="radar-sweep"></div>
           <div class="radar-core"></div>
         </div>
-        <h2>Select an instance</h2>
-        <p>Live execution trace, package metrics, and step-by-step BPMN path will appear here</p>
+        <h3 class="empty-h">Select an instance</h3>
+        <p class="empty-p">Live execution trace, package data, and step-by-step path appear here</p>
       </div>
     }
 
     @if (selectedInstance(); as inst) {
 
-      <!-- ─────────────────────────────────────────────────────
-           HEADER
-      ───────────────────────────────────────────────────────── -->
-      <header class="main-header">
-        <div class="mh-left">
-          <!-- Big status badge -->
-          <div class="big-badge"
-               [class.bb-ACTIVE]="inst.dto.status === 'ACTIVE'"
-               [class.bb-done]="inst.dto.status === 'COMPLETED'"
-               [class.bb-failed]="inst.dto.status === 'FAILED'">
+      <!-- Detail header -->
+      <div class="detail-head">
+        <div class="dh-left">
+
+          <div class="status-chip"
+               [class.chip-ACTIVE]="inst.dto.status === 'ACTIVE'"
+               [class.chip-done]="inst.dto.status === 'COMPLETED'"
+               [class.chip-failed]="inst.dto.status === 'FAILED'">
             @if (inst.dto.status === 'ACTIVE') {
-              <span class="bb-pip"></span>
+              <span class="chip-dot chip-dot-blink"></span>
             } @else if (inst.dto.status === 'COMPLETED') {
-              <!-- checkmark -->
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor"
-                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1.5 5.5l3 3 5-5"/>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1.5 6l3.5 3.5 5.5-6"/>
               </svg>
             } @else {
-              <!-- cross -->
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor"
-                   stroke-width="2.5" stroke-linecap="round">
-                <path d="M1 1l8 8M9 1L1 9"/>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                <path d="M1 1l9 9M10 1L1 10"/>
               </svg>
             }
             {{ inst.dto.status }}
           </div>
 
-          <div class="mh-id-block">
-            <span class="mh-id">#{{ inst.dto.id }}</span>
-            <span class="mh-defid">def #{{ inst.dto.definitionId }}</span>
+          <div class="dh-id">
+            <span class="dh-id-num">#{{ inst.dto.id }}</span>
+            <span class="dh-id-sub">def #{{ inst.dto.definitionId }}</span>
           </div>
 
-          <div class="mh-divider"></div>
+          <div class="dh-sep"></div>
 
-          <div class="mh-scanner-block">
-            <span class="mh-lbl">Scanner</span>
-            <span class="mh-val">{{ inst.vars.scanner_id ?? '—' }}</span>
+          <div class="dh-field">
+            <span class="dh-field-key">Scanner</span>
+            <span class="dh-field-val">{{ inst.vars.scanner_id ?? '—' }}</span>
+          </div>
+
+          <div class="dh-field">
+            <span class="dh-field-key">Started</span>
+            <span class="dh-field-val">{{ fmtDateTime(inst.dto.startedAt) }}</span>
           </div>
         </div>
 
-        <div class="mh-right">
+        <div class="dh-right">
           @if (inst.dto.status === 'ACTIVE') {
-            <div class="mh-timer">
-              <div class="timer-ring"></div>
-              {{ fmtElapsed(inst.elapsed) }}
+            <div class="ACTIVE-timer">
+              <div class="timer-spin"></div>
+              <span>{{ fmtElapsed(inst.elapsed) }}</span>
             </div>
           } @else {
-            <div class="mh-timerange">
-              <span>{{ fmtDateTime(inst.dto.startedAt) }}</span>
-              <span class="tr-arrow">→</span>
-              <span class="tr-elapsed">{{ fmtElapsed(inst.elapsed) }}</span>
+            <div class="elapsed-chip">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 4v3l2 1.5"/>
+              </svg>
+              {{ fmtElapsed(inst.elapsed) }}
             </div>
           }
-
           <button class="icon-btn" (click)="loadLive()" title="Refresh">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
-                 stroke-width="1.75" stroke-linecap="round">
-              <path d="M1.5 7a5.5 5.5 0 1010 0M1.5 7V3M1.5 7H5.5"/>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M1.5 7.5A6 6 0 1012 7.5M1.5 7.5V3M1.5 7.5H6"/>
             </svg>
           </button>
         </div>
-      </header>
+      </div>
 
-      <!-- ─────────────────────────────────────────────────────
-           BODY
-      ───────────────────────────────────────────────────────── -->
-      <div class="main-body">
+      <!-- Detail body -->
+      <div class="detail-body">
 
-        <!-- ══ TOP ROW: Package + Result ══ -->
-        <div class="top-row">
+        <!-- Row 1: Package + Outcome -->
+        <div class="row-two-col">
 
-          <!-- Package metrics -->
-          <section class="card pkg-card">
-            <div class="card-label">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-                   stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1.5 3.5L6 1l4.5 2.5v6L6 12 1.5 9.5V3.5z"/>
-                <path d="M6 1v11M1.5 3.5L6 6l4.5-2.5"/>
+          <!-- Package card -->
+          <div class="card">
+            <div class="card-head">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 4l5-3 5 3v7l-5 3-5-3V4z"/><path d="M7 1v10M2 4l5 3 5-3"/>
               </svg>
               Package
             </div>
             <div class="pkg-grid">
-              <div class="pkg-field pkg-barcode">
-                <span class="pf-key">Barcode</span>
-                <span class="pf-val pf-mono">{{ inst.vars.barcode ?? '—' }}</span>
+              <div class="pkg-field pkg-full">
+                <span class="pkg-key">Barcode</span>
+                <span class="pkg-val pkg-mono">{{ inst.vars.barcode ?? '—' }}</span>
               </div>
               <div class="pkg-field">
-                <span class="pf-key">Weight</span>
-                <span class="pf-val">{{ fmtNum(inst.vars.weight) }}<em>kg</em></span>
+                <span class="pkg-key">Weight</span>
+                <span class="pkg-val">{{ fmtNum(inst.vars.weight) }}<em> kg</em></span>
               </div>
               <div class="pkg-field">
-                <span class="pf-key">Length</span>
-                <span class="pf-val">{{ fmtNum(inst.vars.length) }}<em>cm</em></span>
+                <span class="pkg-key">Length</span>
+                <span class="pkg-val">{{ fmtNum(inst.vars.length) }}<em> cm</em></span>
               </div>
               <div class="pkg-field">
-                <span class="pf-key">Width</span>
-                <span class="pf-val">{{ fmtNum(inst.vars.width) }}<em>cm</em></span>
+                <span class="pkg-key">Width</span>
+                <span class="pkg-val">{{ fmtNum(inst.vars.width) }}<em> cm</em></span>
               </div>
               <div class="pkg-field">
-                <span class="pf-key">Height</span>
-                <span class="pf-val">{{ fmtNum(inst.vars.height) }}<em>cm</em></span>
+                <span class="pkg-key">Height</span>
+                <span class="pkg-val">{{ fmtNum(inst.vars.height) }}<em> cm</em></span>
               </div>
             </div>
-          </section>
+          </div>
 
-          <!-- Result / outcome -->
-          <section class="card outcome-card"
-                   [class.oc-ACTIVE]="inst.dto.status === 'ACTIVE'"
-                   [class.oc-done]="inst.dto.status === 'COMPLETED'"
-                   [class.oc-failed]="inst.dto.status === 'FAILED'">
-            <div class="card-label">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-                   stroke-width="1.5" stroke-linecap="round">
-                <path d="M2 6h8M6 2l4 4-4 4"/>
+          <!-- Outcome card -->
+          <div class="card outcome-card"
+               [class.oc-ACTIVE]="inst.dto.status === 'ACTIVE'"
+               [class.oc-done]="inst.dto.status === 'COMPLETED'"
+               [class.oc-failed]="inst.dto.status === 'FAILED'">
+            <div class="card-head">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <path d="M2 7h10M7 2l5 5-5 5"/>
               </svg>
               Outcome
             </div>
+            <div class="oc-content">
 
-            <div class="oc-body">
               @if (inst.dto.status === 'ACTIVE') {
-                <div class="oc-ACTIVE">
-                  <div class="oc-scan-beam"></div>
-                  <div class="oc-run-label">Processing</div>
+                <div class="oc-ACTIVE-state">
+                  <div class="oc-beam"></div>
+                  <p class="oc-processing">Processing…</p>
                   @if (inst.vars.nextStep) {
-                    <div class="oc-next">
-                      <span class="oc-next-arrow">→</span>
+                    <p class="oc-next-step">
+                      <span class="oc-arrow">›</span>
                       {{ stepLabel(inst.vars.nextStep) }}
-                    </div>
+                    </p>
                   }
-                  <div class="oc-dots">
-                    <span></span><span></span><span></span>
-                  </div>
+                  <div class="oc-bounce-dots"><span></span><span></span><span></span></div>
                 </div>
               } @else if (inst.dto.status === 'COMPLETED') {
-                <div class="oc-success">
-                  <div class="oc-check-ring">
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor"
-                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M4 11l5 5 9-9"/>
+                <div class="oc-success-state">
+                  <div class="oc-check-circle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 12l6 6 10-10"/>
                     </svg>
                   </div>
-                  <div class="oc-lane-name">{{ inst.vars.finalLane ?? 'Completed' }}</div>
-                  <div class="oc-lane-sub">Final lane</div>
+                  <p class="oc-lane">{{ inst.vars.finalLane ?? 'Completed' }}</p>
+                  <p class="oc-lane-sub">Final destination</p>
                 </div>
               } @else {
-                <div class="oc-failure">
-                  <div class="oc-fail-icon">
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor"
-                         stroke-width="2" stroke-linecap="round">
-                      <path d="M5 5l12 12M17 5L5 17"/>
+                <div class="oc-fail-state">
+                  <div class="oc-fail-circle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                      <path d="M5 5l14 14M19 5L5 19"/>
                     </svg>
                   </div>
-                  <div class="oc-fail-reason">{{ inst.vars.failReason ?? 'Execution failed' }}</div>
+                  <p class="oc-fail-msg">{{ inst.vars.failReason ?? 'Execution failed' }}</p>
                 </div>
               }
-            </div>
-          </section>
 
+            </div>
+          </div>
         </div>
 
-        <!-- ══ EXECUTION PATH ══ -->
-        <section class="card path-card">
-          <div class="card-label">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-                 stroke-width="1.5" stroke-linecap="round">
-              <path d="M1 6h2l1.5-3.5L7 10l1.5-4H11"/>
+        <!-- Execution path -->
+        <div class="card">
+          <div class="card-head">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <path d="M1.5 7h2.5l2-4.5 2.5 9 2-4.5H13"/>
             </svg>
             Execution Path
             @if (inst.dto.status === 'ACTIVE') {
-              <span class="live-tag">● LIVE</span>
+              <span class="live-badge">● LIVE</span>
             }
           </div>
 
           @if (inst.steps.length === 0) {
-            <div class="path-empty-msg">
+            <div class="path-empty">
               @if (inst.dto.status === 'ACTIVE') {
-                <div class="pem-dots"><span></span><span></span><span></span></div>
-                Waiting for engine…
+                <div class="dot-loader small"><span></span><span></span><span></span></div>
+                <span>Waiting for engine…</span>
               } @else {
-                No path recorded
+                <span>No path recorded</span>
               }
             </div>
           } @else {
-            <div class="step-track">
+            <div class="path-steps">
               @for (step of inst.steps; track $index; let last = $last; let idx = $index) {
-                <div class="step-node"
-                     [class.sn-done]="!last || inst.dto.status !== 'ACTIVE'"
-                     [class.sn-active]="last && inst.dto.status === 'ACTIVE'"
-                     [style.animation-delay]="idx * 60 + 'ms'">
-                  <div class="sn-badge">
+                <div class="step"
+                     [class.step-done]="!last || inst.dto.status !== 'ACTIVE'"
+                     [class.step-active]="last && inst.dto.status === 'ACTIVE'"
+                     [style.--step-delay]="idx * 60 + 'ms'">
+                  <div class="step-node">
                     @if (last && inst.dto.status === 'ACTIVE') {
-                      <div class="sn-halo"></div>
-                      <div class="sn-inner-spin"></div>
+                      <div class="step-halo"></div>
+                      <div class="step-spin"></div>
                     } @else {
-                      <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor"
-                           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1.5 4.5l2.5 2.5 3.5-4"/>
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1.5 5l3 3 4-5"/>
                       </svg>
                     }
                   </div>
-                  <div class="sn-label">{{ stepLabel(step) }}</div>
+                  <span class="step-label">{{ stepLabel(step) }}</span>
                   @if (!last) {
-                    <div class="sn-line"></div>
+                    <div class="step-line"></div>
                   }
                 </div>
               }
 
-              <!-- Ghost next step -->
               @if (inst.dto.status === 'ACTIVE' && inst.vars.nextStep) {
-                <div class="step-node sn-ghost">
-                  <div class="sn-ghost-line"></div>
-                  <div class="sn-badge sn-ghost-badge">
-                    <div class="sn-ghost-dot"></div>
+                <div class="step step-ghost">
+                  <div class="step-ghost-line"></div>
+                  <div class="step-node step-node-ghost">
+                    <div class="ghost-pulse"></div>
                   </div>
-                  <div class="sn-label sn-ghost-label">
-                    {{ stepLabel(inst.vars.nextStep) }}
-                  </div>
+                  <span class="step-label step-label-ghost">{{ stepLabel(inst.vars.nextStep) }}</span>
                 </div>
               }
             </div>
           }
-        </section>
+        </div>
 
-        <!-- ══ RAW VARIABLES ══ -->
-        <section class="card raw-card">
-          <button class="raw-toggle" (click)="toggleRaw()">
-            <div class="card-label" style="margin-bottom:0">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-                   stroke-width="1.5" stroke-linecap="round">
-                <path d="M3.5 2L1 6l2.5 4M8.5 2L11 6l-2.5 4M5.5 1.5l-1 9"/>
+        <!-- Raw variables -->
+        <div class="card raw-card">
+          <button class="raw-head" (click)="toggleRaw()">
+            <div class="card-head" style="margin:0; border:none; padding:0">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <path d="M4 2L1 7l3 5M10 2l3 5-3 5M6.5 1.5l-1 11"/>
               </svg>
               Variables
-              <span class="raw-count">{{ (inst.steps.length + 5) }} keys</span>
             </div>
-            <div class="raw-chev" [class.raw-open]="expandedRaw()">›</div>
+            <div class="raw-chev" [class.raw-chev-open]="expandedRaw()">›</div>
           </button>
           @if (expandedRaw()) {
             <pre class="raw-pre">{{ inst.vars | json }}</pre>
           }
-        </section>
+        </div>
 
       </div>
     }
