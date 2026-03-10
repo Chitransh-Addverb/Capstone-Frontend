@@ -26,9 +26,9 @@ export class InstanceSelector {
   confirming      = signal(false);
 
   readonly instances: InstanceOption[] = [
-    { id: 'AMTA',      sub: 'Primary warehouse — Andheri, Mumbai' },
-    { id: 'MERIL',     sub: 'Secondary warehouse — Vile Parle, Mumbai' },
-    { id: 'SULTANPUR', sub: 'Tertiary warehouse — Sultanpur, Delhi' },
+    { id: 'AMTA',      sub: 'Warehouse 1' },
+    { id: 'MERIL',     sub: 'Warehouse 2' },
+    { id: 'SULTANPUR', sub: 'Warehouse 3' },
   ];
 
   get avatarLetter(): string {

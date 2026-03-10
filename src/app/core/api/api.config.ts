@@ -25,8 +25,13 @@ export const API_ENDPOINTS = {
   instance: {
     list:       `${API_BASE}/instances`,
     getById:    (id: string) => `${API_BASE}/instances/${id}`,
+    stream:    (id: number) => `${API_BASE}/instances/${id}/stream`,
+  },
+  scanEvents: {
+    list:      `${API_BASE}/scan-events`,
   },
 } as const;
+
 
 
 

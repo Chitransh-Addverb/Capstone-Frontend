@@ -1,1 +1,514 @@
-<p>monitoring works!</p>
+<div class="ops-shell">
+
+  <!-- ══════════════════════════════════════════════════════════
+       LEFT RAIL
+  ══════════════════════════════════════════════════════════════ -->
+  <aside class="ops-rail">
+
+    <!-- Rail top bar -->
+    <div class="rail-topbar">
+      <div class="rail-brand">
+        <div class="brand-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+               stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1"/>
+            <rect x="8" y="1.5" width="4.5" height="4.5" rx="1"/>
+            <rect x="1.5" y="8" width="4.5" height="4.5" rx="1"/>
+            <rect x="8" y="8" width="4.5" height="4.5" rx="1"/>
+          </svg>
+        </div>
+        <span class="brand-label">Operations</span>
+      </div>
+      <div class="live-pill">
+        <span class="live-pip"></span>
+        LIVE
+      </div>
+    </div>
+
+    <!-- Stat strip -->
+    <div class="stat-strip">
+      <button class="stat-cell"
+              [class.stat-active]="statusFilter() === 'ALL'"
+              (click)="setFilter('ALL')">
+        <span class="stat-val">{{ instances().length }}</span>
+        <span class="stat-key">Total</span>
+      </button>
+      <button class="stat-cell stat-amber"
+              [class.stat-active]="statusFilter() === 'ACTIVE'"
+              (click)="setFilter('ACTIVE')">
+        <span class="stat-val">{{ ACTIVECount() }}</span>
+        <span class="stat-key">ACTIVE</span>
+      </button>
+      <button class="stat-cell stat-green"
+              [class.stat-active]="statusFilter() === 'COMPLETED'"
+              (click)="setFilter('COMPLETED')">
+        <span class="stat-val">{{ completedCount() }}</span>
+        <span class="stat-key">Done</span>
+      </button>
+      <button class="stat-cell stat-red"
+              [class.stat-active]="statusFilter() === 'FAILED'"
+              (click)="setFilter('FAILED')">
+        <span class="stat-val">{{ failedCount() }}</span>
+        <span class="stat-key">Failed</span>
+      </button>
+    </div>
+
+    <!-- Tab row + search -->
+    <div class="rail-controls">
+      <div class="tab-row">
+        <button class="tab-btn" [class.tab-on]="activeTab() === 'live'"
+                (click)="setTab('live')">
+          Instances
+        </button>
+        <button class="tab-btn" [class.tab-on]="activeTab() === 'history'"
+                (click)="setTab('history')">
+          History
+        </button>
+      </div>
+
+      <div class="search-bar">
+        <svg class="search-ico" width="12" height="12" viewBox="0 0 12 12" fill="none"
+             stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <circle cx="5" cy="5" r="3.5"/><path d="M8 8l2.5 2.5"/>
+        </svg>
+        @if (activeTab() === 'live') {
+          <input class="search-input" type="text" placeholder="Scanner, barcode, ID…"
+                 autocomplete="off"
+                 [ngModel]="searchQuery()"
+                 (ngModelChange)="searchQuery.set($event)"/>
+          @if (searchQuery()) {
+            <button class="search-x" (click)="searchQuery.set('')">✕</button>
+          }
+        } @else {
+          <input class="search-input" type="text" placeholder="Filter by scanner ID…"
+                 autocomplete="off"
+                 [ngModel]="historySearch()"
+                 (ngModelChange)="historySearch.set($event)"
+                 (keydown.enter)="onHistorySearch()"/>
+          @if (historySearch()) {
+            <button class="search-x" (click)="historySearch.set(''); onHistorySearch()">✕</button>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- ── INSTANCES LIST ── -->
+    @if (activeTab() === 'live') {
+      @if (loadingLive()) {
+        <div class="rail-center">
+          <div class="loader-dots"><span></span><span></span><span></span></div>
+          <p>Loading instances…</p>
+        </div>
+      } @else if (liveError()) {
+        <div class="rail-center error-state">
+          <div class="error-icon">!</div>
+          <p>{{ liveError() }}</p>
+          <button class="retry-btn" (click)="loadLive()">Retry</button>
+        </div>
+      } @else if (filteredInstances().length === 0) {
+        <div class="rail-center">
+          <div class="empty-glyph">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor"
+                 stroke-width="1.2" stroke-linecap="round">
+              <circle cx="16" cy="16" r="12"/>
+              <circle cx="16" cy="16" r="6"/>
+              <circle cx="16" cy="16" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <p>No instances found</p>
+        </div>
+      } @else {
+        <div class="inst-list">
+          @for (inst of filteredInstances(); track inst.dto.id) {
+            <button class="inst-row"
+                    [class.inst-selected]="selectedId() === inst.dto.id"
+                    [class.inst-ACTIVE]="inst.dto.status === 'ACTIVE'"
+                    [class.inst-done]="inst.dto.status === 'COMPLETED'"
+                    [class.inst-failed]="inst.dto.status === 'FAILED'"
+                    (click)="selectInstance(inst.dto.id)">
+
+              <!-- Left accent bar -->
+              <div class="row-bar"></div>
+
+              <!-- Status glow dot -->
+              <div class="row-dot">
+                @if (inst.dto.status === 'ACTIVE') {
+                  <div class="dot-halo"></div>
+                }
+              </div>
+
+              <!-- Content -->
+              <div class="row-content">
+                <div class="row-line1">
+                  <span class="row-scanner">{{ inst.vars.scanner_id ?? '—' }}</span>
+                  <span class="row-id">#{{ inst.dto.id }}</span>
+                </div>
+                <div class="row-line2">
+                  <span class="row-barcode">{{ inst.vars.barcode ?? 'No barcode' }}</span>
+                  @if (inst.dto.status === 'ACTIVE') {
+                    <span class="row-elapsed">{{ fmtElapsed(inst.elapsed) }}</span>
+                  } @else if (inst.dto.status === 'COMPLETED') {
+                    <span class="row-lane">{{ inst.vars.finalLane ?? 'Done' }}</span>
+                  } @else {
+                    <span class="row-err">Failed</span>
+                  }
+                </div>
+
+                @if (inst.dto.status === 'ACTIVE' && inst.vars.nextStep) {
+                  <div class="row-next">
+                    <span class="next-chevron">›</span>
+                    {{ stepLabel(inst.vars.nextStep) }}
+                  </div>
+                }
+
+                @if (inst.dto.status === 'ACTIVE') {
+                  <div class="row-worm"><div class="worm-fill"></div></div>
+                }
+              </div>
+            </button>
+          }
+        </div>
+      }
+    }
+
+    <!-- ── HISTORY LIST ── -->
+    @if (activeTab() === 'history') {
+      @if (loadingHistory()) {
+        <div class="rail-center">
+          <div class="loader-dots"><span></span><span></span><span></span></div>
+        </div>
+      } @else if (scanEvents().length === 0) {
+        <div class="rail-center">
+          <p>No scan events yet</p>
+        </div>
+      } @else {
+        <div class="hist-list">
+          @for (ev of scanEvents(); track ev.id) {
+            <div class="hist-item" [class.hist-open]="expandedEvent() === ev.id"
+                 (click)="toggleEvent(ev.id)">
+              <div class="hist-bar"
+                   [class.hbar-ok]="ev.execution_status === 'COMPLETED'"
+                   [class.hbar-fail]="ev.execution_status === 'FAILED'"></div>
+              <div class="hist-body">
+                <div class="hist-line1">
+                  <span class="hist-scanner">{{ ev.scanner_id }}</span>
+                  <span class="hist-ts">{{ fmtTime(ev.scanned_at) }}</span>
+                </div>
+                <div class="hist-line2">
+                  <span class="hist-barcode">{{ ev.barcode }}</span>
+                  @if (ev.lane_name) {
+                    <span class="hist-lane">{{ ev.lane_name }}</span>
+                  }
+                  @if (ev.execution_status === 'FAILED') {
+                    <span class="hist-fail-tag">FAILED</span>
+                  }
+                </div>
+                @if (expandedEvent() === ev.id) {
+                  <div class="hist-expanded">
+                    @if (ev.execution_path) {
+                      <div class="hist-path">{{ ev.execution_path }}</div>
+                    }
+                    @if (ev.fail_reason) {
+                      <div class="hist-reason">⚠ {{ ev.fail_reason }}</div>
+                    }
+                    @if (ev.variables_json) {
+                      <pre class="hist-json">{{ parseJson(ev.variables_json) }}</pre>
+                    }
+                  </div>
+                }
+              </div>
+              <div class="hist-chevron" [class.hist-open-chev]="expandedEvent() === ev.id">›</div>
+            </div>
+          }
+        </div>
+
+        <!-- Pagination -->
+        <div class="hist-pager">
+          <button class="pager-btn" [disabled]="historyPage() === 0" (click)="historyPrev()">
+            ‹
+          </button>
+          <span class="pager-label">{{ historyPage() + 1 }} / {{ historyPages() }}
+            <em>{{ historyTotal() }} events</em>
+          </span>
+          <button class="pager-btn" [disabled]="historyPage() >= historyPages() - 1"
+                  (click)="historyNext()">
+            ›
+          </button>
+        </div>
+      }
+    }
+
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════
+       MAIN DETAIL PANEL
+  ══════════════════════════════════════════════════════════════ -->
+  <main class="ops-main">
+
+    <!-- ── EMPTY STATE ── -->
+    @if (!selectedInstance()) {
+      <div class="main-empty">
+        <div class="radar-wrap">
+          <div class="radar-c c1"></div>
+          <div class="radar-c c2"></div>
+          <div class="radar-c c3"></div>
+          <div class="radar-sweep"></div>
+          <div class="radar-core"></div>
+        </div>
+        <h2>Select an instance</h2>
+        <p>Live execution trace, package metrics, and step-by-step BPMN path will appear here</p>
+      </div>
+    }
+
+    @if (selectedInstance(); as inst) {
+
+      <!-- ─────────────────────────────────────────────────────
+           HEADER
+      ───────────────────────────────────────────────────────── -->
+      <header class="main-header">
+        <div class="mh-left">
+          <!-- Big status badge -->
+          <div class="big-badge"
+               [class.bb-ACTIVE]="inst.dto.status === 'ACTIVE'"
+               [class.bb-done]="inst.dto.status === 'COMPLETED'"
+               [class.bb-failed]="inst.dto.status === 'FAILED'">
+            @if (inst.dto.status === 'ACTIVE') {
+              <span class="bb-pip"></span>
+            } @else if (inst.dto.status === 'COMPLETED') {
+              <!-- checkmark -->
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor"
+                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1.5 5.5l3 3 5-5"/>
+              </svg>
+            } @else {
+              <!-- cross -->
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor"
+                   stroke-width="2.5" stroke-linecap="round">
+                <path d="M1 1l8 8M9 1L1 9"/>
+              </svg>
+            }
+            {{ inst.dto.status }}
+          </div>
+
+          <div class="mh-id-block">
+            <span class="mh-id">#{{ inst.dto.id }}</span>
+            <span class="mh-defid">def #{{ inst.dto.definitionId }}</span>
+          </div>
+
+          <div class="mh-divider"></div>
+
+          <div class="mh-scanner-block">
+            <span class="mh-lbl">Scanner</span>
+            <span class="mh-val">{{ inst.vars.scanner_id ?? '—' }}</span>
+          </div>
+        </div>
+
+        <div class="mh-right">
+          @if (inst.dto.status === 'ACTIVE') {
+            <div class="mh-timer">
+              <div class="timer-ring"></div>
+              {{ fmtElapsed(inst.elapsed) }}
+            </div>
+          } @else {
+            <div class="mh-timerange">
+              <span>{{ fmtDateTime(inst.dto.startedAt) }}</span>
+              <span class="tr-arrow">→</span>
+              <span class="tr-elapsed">{{ fmtElapsed(inst.elapsed) }}</span>
+            </div>
+          }
+
+          <button class="icon-btn" (click)="loadLive()" title="Refresh">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+                 stroke-width="1.75" stroke-linecap="round">
+              <path d="M1.5 7a5.5 5.5 0 1010 0M1.5 7V3M1.5 7H5.5"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ─────────────────────────────────────────────────────
+           BODY
+      ───────────────────────────────────────────────────────── -->
+      <div class="main-body">
+
+        <!-- ══ TOP ROW: Package + Result ══ -->
+        <div class="top-row">
+
+          <!-- Package metrics -->
+          <section class="card pkg-card">
+            <div class="card-label">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                   stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1.5 3.5L6 1l4.5 2.5v6L6 12 1.5 9.5V3.5z"/>
+                <path d="M6 1v11M1.5 3.5L6 6l4.5-2.5"/>
+              </svg>
+              Package
+            </div>
+            <div class="pkg-grid">
+              <div class="pkg-field pkg-barcode">
+                <span class="pf-key">Barcode</span>
+                <span class="pf-val pf-mono">{{ inst.vars.barcode ?? '—' }}</span>
+              </div>
+              <div class="pkg-field">
+                <span class="pf-key">Weight</span>
+                <span class="pf-val">{{ fmtNum(inst.vars.weight) }}<em>kg</em></span>
+              </div>
+              <div class="pkg-field">
+                <span class="pf-key">Length</span>
+                <span class="pf-val">{{ fmtNum(inst.vars.length) }}<em>cm</em></span>
+              </div>
+              <div class="pkg-field">
+                <span class="pf-key">Width</span>
+                <span class="pf-val">{{ fmtNum(inst.vars.width) }}<em>cm</em></span>
+              </div>
+              <div class="pkg-field">
+                <span class="pf-key">Height</span>
+                <span class="pf-val">{{ fmtNum(inst.vars.height) }}<em>cm</em></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Result / outcome -->
+          <section class="card outcome-card"
+                   [class.oc-ACTIVE]="inst.dto.status === 'ACTIVE'"
+                   [class.oc-done]="inst.dto.status === 'COMPLETED'"
+                   [class.oc-failed]="inst.dto.status === 'FAILED'">
+            <div class="card-label">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                   stroke-width="1.5" stroke-linecap="round">
+                <path d="M2 6h8M6 2l4 4-4 4"/>
+              </svg>
+              Outcome
+            </div>
+
+            <div class="oc-body">
+              @if (inst.dto.status === 'ACTIVE') {
+                <div class="oc-ACTIVE">
+                  <div class="oc-scan-beam"></div>
+                  <div class="oc-run-label">Processing</div>
+                  @if (inst.vars.nextStep) {
+                    <div class="oc-next">
+                      <span class="oc-next-arrow">→</span>
+                      {{ stepLabel(inst.vars.nextStep) }}
+                    </div>
+                  }
+                  <div class="oc-dots">
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
+              } @else if (inst.dto.status === 'COMPLETED') {
+                <div class="oc-success">
+                  <div class="oc-check-ring">
+                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 11l5 5 9-9"/>
+                    </svg>
+                  </div>
+                  <div class="oc-lane-name">{{ inst.vars.finalLane ?? 'Completed' }}</div>
+                  <div class="oc-lane-sub">Final lane</div>
+                </div>
+              } @else {
+                <div class="oc-failure">
+                  <div class="oc-fail-icon">
+                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round">
+                      <path d="M5 5l12 12M17 5L5 17"/>
+                    </svg>
+                  </div>
+                  <div class="oc-fail-reason">{{ inst.vars.failReason ?? 'Execution failed' }}</div>
+                </div>
+              }
+            </div>
+          </section>
+
+        </div>
+
+        <!-- ══ EXECUTION PATH ══ -->
+        <section class="card path-card">
+          <div class="card-label">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
+              <path d="M1 6h2l1.5-3.5L7 10l1.5-4H11"/>
+            </svg>
+            Execution Path
+            @if (inst.dto.status === 'ACTIVE') {
+              <span class="live-tag">● LIVE</span>
+            }
+          </div>
+
+          @if (inst.steps.length === 0) {
+            <div class="path-empty-msg">
+              @if (inst.dto.status === 'ACTIVE') {
+                <div class="pem-dots"><span></span><span></span><span></span></div>
+                Waiting for engine…
+              } @else {
+                No path recorded
+              }
+            </div>
+          } @else {
+            <div class="step-track">
+              @for (step of inst.steps; track $index; let last = $last; let idx = $index) {
+                <div class="step-node"
+                     [class.sn-done]="!last || inst.dto.status !== 'ACTIVE'"
+                     [class.sn-active]="last && inst.dto.status === 'ACTIVE'"
+                     [style.animation-delay]="idx * 60 + 'ms'">
+                  <div class="sn-badge">
+                    @if (last && inst.dto.status === 'ACTIVE') {
+                      <div class="sn-halo"></div>
+                      <div class="sn-inner-spin"></div>
+                    } @else {
+                      <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor"
+                           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1.5 4.5l2.5 2.5 3.5-4"/>
+                      </svg>
+                    }
+                  </div>
+                  <div class="sn-label">{{ stepLabel(step) }}</div>
+                  @if (!last) {
+                    <div class="sn-line"></div>
+                  }
+                </div>
+              }
+
+              <!-- Ghost next step -->
+              @if (inst.dto.status === 'ACTIVE' && inst.vars.nextStep) {
+                <div class="step-node sn-ghost">
+                  <div class="sn-ghost-line"></div>
+                  <div class="sn-badge sn-ghost-badge">
+                    <div class="sn-ghost-dot"></div>
+                  </div>
+                  <div class="sn-label sn-ghost-label">
+                    {{ stepLabel(inst.vars.nextStep) }}
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </section>
+
+        <!-- ══ RAW VARIABLES ══ -->
+        <section class="card raw-card">
+          <button class="raw-toggle" (click)="toggleRaw()">
+            <div class="card-label" style="margin-bottom:0">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                   stroke-width="1.5" stroke-linecap="round">
+                <path d="M3.5 2L1 6l2.5 4M8.5 2L11 6l-2.5 4M5.5 1.5l-1 9"/>
+              </svg>
+              Variables
+              <span class="raw-count">{{ (inst.steps.length + 5) }} keys</span>
+            </div>
+            <div class="raw-chev" [class.raw-open]="expandedRaw()">›</div>
+          </button>
+          @if (expandedRaw()) {
+            <pre class="raw-pre">{{ inst.vars | json }}</pre>
+          }
+        </section>
+
+      </div>
+    }
+  </main>
+
+</div>
+
+
+
