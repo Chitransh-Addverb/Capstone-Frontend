@@ -54,12 +54,6 @@ export const routes: Routes = [
           import('./features/monitoring/monitoring')
             .then(m => m.Monitoring),
       },
-      {
-        path: 'instances',
-        loadComponent: () =>
-          import('./features/instances/instances')
-            .then(m => m.Instances),
-      },
     ],
   },
 
@@ -69,6 +63,7 @@ export const routes: Routes = [
     redirectTo: 'dashboard',
   },
 ];
+
 
 
 

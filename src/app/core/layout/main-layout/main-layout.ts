@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Sidebar } from '../sidebar/sidebar';
 import { Topbar } from '../topbar/topbar';
 import { ToastComponent } from '../../../shared/components/toast/toast';
+import { SidebarStateService } from '../../api/sidebar-state.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -12,4 +13,7 @@ import { ToastComponent } from '../../../shared/components/toast/toast';
 })
 export class MainLayout {
 
+  sidebarState = inject(SidebarStateService);
+
 }
+

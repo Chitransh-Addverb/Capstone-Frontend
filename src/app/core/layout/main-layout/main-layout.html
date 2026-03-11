@@ -1,14 +1,14 @@
-<div class="layout-shell">
+<div class="flex min-h-screen bg-[var(--surface-ground)]">
+
   <app-sidebar />
-  <app-topbar />
-  <main class="main-content">
-    <div class="content-wrapper page-enter">
+  <app-topbar [class.sidebar-collapsed]="sidebarState.collapsed()" />
+
+  <main class="main-area flex-1 min-w-0 overflow-y-auto overflow-x-hidden"
+        [class.sidebar-open]="!sidebarState.collapsed()">
+    <div class="px-8 py-7 min-h-full w-full box-border page-enter">
       <router-outlet />
     </div>
   </main>
+
   <app-toast />
 </div>
-
-
-
-

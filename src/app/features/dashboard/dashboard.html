@@ -22,102 +22,47 @@
     </div>
   </div>
 
-  <!-- ── Stats Grid ── -->
+  <!-- ── Stats Grid — dynamic: one tile per tileDef entry ── -->
   <div class="stats-grid">
 
-    <div class="stat-card stat-active">
-      <div class="stat-header">
-        <span class="stat-icon" style="background:rgba(79,70,229,0.1); color:#4f46e5">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
-               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <rect x="1" y="1" width="6" height="6" rx="1.5"/>
-            <rect x="11" y="1" width="6" height="6" rx="1.5"/>
-            <rect x="5.5" y="11" width="7" height="6" rx="1.5"/>
-            <path d="M4 7v2a2 2 0 002 2h1M14 7v1a2 2 0 01-2 2H11"/>
-          </svg>
-        </span>
-        <span class="stat-badge badge-neutral">Workflows</span>
-      </div>
-      <div class="stat-value">{{ activeWorkflows() }}</div>
-      <div class="stat-label">Active Workflows</div>
-      <div class="stat-trend">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <path d="M1 9l3-4 3 2 4-5"/>
-        </svg>
-        Running across all instances
-      </div>
-    </div>
+    @for (tile of tileDefs; track tile.key) {
+      <div class="stat-card" [ngClass]="tile.cardClass">
 
-    <div class="stat-card stat-live">
-      <div class="stat-header">
-        <span class="stat-icon" style="background:rgba(5,150,105,0.1); color:#059669">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
-               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <circle cx="9" cy="9" r="7"/>
-            <path d="M9 5.5v3.5l2.5 2"/>
-          </svg>
-        </span>
-        <span class="stat-badge badge-live">
-          <span class="live-dot"></span>Live
-        </span>
-      </div>
-      <div class="stat-value">0</div>
-      <div class="stat-label">Instances Running</div>
-      <div class="stat-trend">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <circle cx="6" cy="6" r="4.5"/>
-          <path d="M6 3.5v2.5l1.5 1.5"/>
-        </svg>
-        Real-time execution count
-      </div>
-    </div>
+        <div class="stat-header">
+          <!-- Icon -->
+          <span class="stat-icon"
+                [style.background]="tile.iconBg"
+                [style.color]="tile.iconColor">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                 [innerHTML]="safe(tile.svgPath)">
+            </svg>
+          </span>
 
-    <div class="stat-card stat-scanner">
-      <div class="stat-header">
-        <span class="stat-icon" style="background:rgba(217,119,6,0.1); color:#d97706">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
-               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <path d="M1 6V3a2 2 0 012-2h3M12 1h3a2 2 0 012 2v3M17 12v3a2 2 0 01-2 2h-3M6 17H3a2 2 0 01-2-2v-3"/>
-            <path d="M6 9h6"/>
-          </svg>
-        </span>
-        <span class="stat-badge badge-neutral">Setup</span>
-      </div>
-      <div class="stat-value">0</div>
-      <div class="stat-label">Scanners Mapped</div>
-      <div class="stat-trend">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <path d="M6 1v4M6 7v4M1 6h4M7 6h4"/>
-        </svg>
-        Configure in scanner config
-      </div>
-    </div>
+          <!-- Badge -->
+          <span class="stat-badge" [ngClass]="tile.badgeClass">
+            @if (tile.badgeLive) {
+              <span class="live-dot"></span>
+            }
+            {{ tile.badgeLabel }}
+          </span>
+        </div>
 
-    <div class="stat-card stat-version">
-      <div class="stat-header">
-        <span class="stat-icon" style="background:rgba(2,132,199,0.1); color:#0284c7">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
-               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <path d="M9 1v5M9 12v5M1 9h5M12 9h5"/>
-            <circle cx="9" cy="9" r="3"/>
+        <!-- Value -->
+        <div class="stat-value">{{ tileValue(tile.key) }}</div>
+        <div class="stat-label">{{ tile.label }}</div>
+
+        <!-- Trend -->
+        <div class="stat-trend">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+               [innerHTML]="safe(tile.trendIcon)">
           </svg>
-        </span>
-        <span class="stat-badge badge-neutral">Total</span>
+          {{ tile.trend }}
+        </div>
+
       </div>
-      <div class="stat-value">{{ totalVersions() }}</div>
-      <div class="stat-label">Workflow Versions</div>
-      <div class="stat-trend">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <path d="M2 9V5l4-3 4 3v4"/>
-          <path d="M5 12V9h2v3"/>
-        </svg>
-        Across {{ totalWorkflows() }} unique workflows
-      </div>
-    </div>
+    }
 
   </div>
 
@@ -133,107 +78,33 @@
         </svg>
       </a>
     </div>
+
     <div class="quick-grid">
+      @for (action of quickActions; track action.route) {
+        <a [routerLink]="action.route" class="quick-card">
 
-      <a routerLink="/designer" class="quick-card">
-        <span class="quick-icon">
-          <svg width="20" height="20" viewBox="0 0 18 18" fill="none"
-               stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="1" y="1" width="6" height="6" rx="1.5"/>
-            <rect x="11" y="1" width="6" height="6" rx="1.5"/>
-            <rect x="5.5" y="11" width="7" height="6" rx="1.5"/>
-            <path d="M4 7v2a2 2 0 002 2h1M14 7v1a2 2 0 01-2 2H11"/>
+          <!-- Icon — rendered via a wrapper so SVG paths show correctly -->
+          <span class="quick-icon">
+            <svg width="22" height="22" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="1.5"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 [innerHTML]="safe(action.svgBody)">
+            </svg>
+          </span>
+
+          <div class="quick-info">
+            <span class="quick-label">{{ action.label }}</span>
+            <span class="quick-desc">{{ action.desc }}</span>
+          </div>
+
+          <svg class="quick-arrow" width="15" height="15" viewBox="0 0 14 14"
+               fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <path d="M2 7h10M8 3l4 4-4 4"/>
           </svg>
-        </span>
-        <div class="quick-info">
-          <span class="quick-label">Workflow Designer</span>
-          <span class="quick-desc">Create and edit BPMN workflows visually</span>
-        </div>
-        <svg class="quick-arrow" width="15" height="15" viewBox="0 0 14 14"
-             fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
-          <path d="M2 7h10M8 3l4 4-4 4"/>
-        </svg>
-      </a>
 
-      <a routerLink="/scanner-config" class="quick-card">
-        <span class="quick-icon">
-          <svg width="20" height="20" viewBox="0 0 18 18" fill="none"
-               stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M1 6V3a2 2 0 012-2h3M12 1h3a2 2 0 012 2v3M17 12v3a2 2 0 01-2 2h-3M6 17H3a2 2 0 01-2-2v-3"/>
-            <path d="M6 9h6"/>
-          </svg>
-        </span>
-        <div class="quick-info">
-          <span class="quick-label">Scanner Mapping</span>
-          <span class="quick-desc">Map scanners to workflow definitions</span>
-        </div>
-        <svg class="quick-arrow" width="15" height="15" viewBox="0 0 14 14"
-             fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
-          <path d="M2 7h10M8 3l4 4-4 4"/>
-        </svg>
-      </a>
-
-      <a routerLink="/monitoring" class="quick-card">
-        <span class="quick-icon">
-          <svg width="20" height="20" viewBox="0 0 18 18" fill="none"
-               stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="1" y="1" width="16" height="16" rx="2"/>
-            <path d="M1 11l4-5 4 3 4-6 4 4"/>
-          </svg>
-        </span>
-        <div class="quick-info">
-          <span class="quick-label">Monitoring</span>
-          <span class="quick-desc">Track live workflow execution in real time</span>
-        </div>
-        <svg class="quick-arrow" width="15" height="15" viewBox="0 0 14 14"
-             fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
-          <path d="M2 7h10M8 3l4 4-4 4"/>
-        </svg>
-      </a>
-
-      <a routerLink="/definitions" class="quick-card">
-        <span class="quick-icon">
-          <svg width="20" height="20" viewBox="0 0 18 18" fill="none"
-               stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 3H3a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1z"/>
-            <path d="M6 7h6M6 10h6M6 13h4"/>
-          </svg>
-        </span>
-        <div class="quick-info">
-          <span class="quick-label">Definitions</span>
-          <span class="quick-desc">Browse, manage and deploy workflow versions</span>
-        </div>
-        <svg class="quick-arrow" width="15" height="15" viewBox="0 0 14 14"
-             fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
-          <path d="M2 7h10M8 3l4 4-4 4"/>
-        </svg>
-      </a>
-
+        </a>
+      }
     </div>
   </div>
 
-  <!-- ── System Status Row ── -->
-  <!-- <div class="status-row">
-    <div class="status-item">
-      <div class="status-dot dot-ok"></div>
-      <span class="status-text">API Connected</span>
-    </div>
-    <div class="status-divider"></div>
-    <div class="status-item">
-      <div class="status-dot dot-ok"></div>
-      <span class="status-text">Tenant Session Active</span>
-    </div>
-    <div class="status-divider"></div>
-    <div class="status-item">
-      <div class="status-dot dot-neutral"></div>
-      <span class="status-text">{{ totalWorkflows() }} Definitions Loaded</span>
-    </div>
-    <div class="status-divider"></div>
-    <div class="status-item">
-      <div class="status-dot dot-neutral"></div>
-      <span class="status-text">v1.0.0 — Warehouse OS</span>
-    </div>
-  </div> -->
-
 </div>
-

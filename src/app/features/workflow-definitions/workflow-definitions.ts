@@ -9,14 +9,17 @@ import {
 import { WorkflowApiService } from '../../core/api/workflow-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { WorkflowDetailModal } from '../../shared/components/workflow-detail-modal/workflow-detail-modal';
+import { Pagination } from '../../shared/components/pagination/pagination';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type SortOption   = 'updated' | 'name' | 'version';
 
+const PAGE_SIZE = 8;
+
 @Component({
   selector: 'app-workflow-definitions',
   standalone: true,
-  imports: [CommonModule, FormsModule, WorkflowDetailModal],
+  imports: [CommonModule, FormsModule, WorkflowDetailModal, Pagination],
   templateUrl: './workflow-definitions.html',
   styleUrl: './workflow-definitions.scss',
 })
@@ -27,6 +30,8 @@ export class WorkflowDefinitionsComponent implements OnInit {
   private router      = inject(Router);
   private toast       = inject(ToastService);
 
+  readonly PAGE_SIZE = PAGE_SIZE;
+
   /* ── Page state ─────────────────────────────────────────── */
   pageLoading  = signal(true);
   pageError    = signal<string | null>(null);
@@ -35,6 +40,9 @@ export class WorkflowDefinitionsComponent implements OnInit {
   searchQuery  = signal('');
   statusFilter = signal<StatusFilter>('all');
   sortBy       = signal<SortOption>('updated');
+
+  /* ── Pagination ─────────────────────────────────────────── */
+  currentPage  = signal(1);
 
   /* ── Row-level loading ──────────────────────────────────── */
   togglingKey  = signal<string | null>(null);
@@ -59,7 +67,13 @@ export class WorkflowDefinitionsComponent implements OnInit {
     this.service.latestVersions().filter(d => d.status === 'active').length);
   totalVersions  = computed(() => this.service.definitions().length);
 
-  displayRows = computed((): { rows: WorkflowDefinition[]; isSearchMode: boolean } => {
+  /** All unique workflow keys (lowercased) — used for duplicate-key guard in deploy modal */
+  existingWorkflowKeys = computed(() =>
+    new Set(this.service.latestVersions().map(d => d.workflow_key.toLowerCase()))
+  );
+
+  /** Filtered + sorted rows (searches across ALL data, not just current page) */
+  filteredRows = computed((): WorkflowDefinition[] => {
     const q      = this.searchQuery().trim().toLowerCase();
     const status = this.statusFilter();
     const sort   = this.sortBy();
@@ -82,8 +96,22 @@ export class WorkflowDefinitionsComponent implements OnInit {
       return 0;
     });
 
-    return { rows: pool, isSearchMode: !!q };
+    return pool;
   });
+
+  /** Legacy: kept for isSearchMode usage in template */
+  displayRows = computed((): { rows: WorkflowDefinition[]; isSearchMode: boolean } => ({
+    rows: this.pagedRows(),
+    isSearchMode: !!this.searchQuery().trim(),
+  }));
+
+  /** Rows for the currently visible page */
+  pagedRows = computed((): WorkflowDefinition[] => {
+    const start = (this.currentPage() - 1) * PAGE_SIZE;
+    return this.filteredRows().slice(start, start + PAGE_SIZE);
+  });
+
+  totalFiltered = computed(() => this.filteredRows().length);
 
   hasActiveFilters = computed(() =>
     this.searchQuery() !== '' ||
@@ -112,10 +140,16 @@ export class WorkflowDefinitionsComponent implements OnInit {
     });
   }
 
+  /* ── Pagination ─────────────────────────────────────────── */
+  onPageChange(page: number): void {
+    this.currentPage.set(page);
+    // Collapse any open version panel when changing pages
+    this.expandedKey.set(null);
+  }
+
   /* ── Version expand ─────────────────────────────────────── */
   toggleVersions(key: string, event: Event): void {
     event.stopPropagation();
-    // Toggle: collapse if already expanded, expand otherwise
     if (this.expandedKey() === key) {
       this.expandedKey.set(null);
       return;
@@ -138,21 +172,34 @@ export class WorkflowDefinitionsComponent implements OnInit {
   }
 
   /* ── Search / filter ─────────────────────────────────────── */
-  setSearch(value: string): void   { this.searchQuery.set(value); }
-  setStatus(s: StatusFilter): void { this.statusFilter.set(s); }
-  setSort(s: SortOption): void     { this.sortBy.set(s); }
+  setSearch(value: string): void {
+    this.searchQuery.set(value);
+    this.currentPage.set(1);    // always reset to page 1 on new search
+    this.expandedKey.set(null); // collapse any open history panel
+  }
+
+  setStatus(s: StatusFilter): void {
+    this.statusFilter.set(s);
+    this.currentPage.set(1);
+  }
+
+  setSort(s: SortOption): void {
+    this.sortBy.set(s);
+    this.currentPage.set(1);
+  }
 
   clearAll(): void {
     this.searchQuery.set('');
     this.statusFilter.set('all');
     this.sortBy.set('updated');
+    this.currentPage.set(1);
   }
 
   /* ── 3-dot menu ─────────────────────────────────────────── */
   menuKey(key: string, version: number): string { return `${key}@${version}`; }
 
   toggleMenu(key: string, version: number, event: Event): void {
-    event.stopPropagation();   // prevent document click from immediately closing
+    event.stopPropagation();
     const k = this.menuKey(key, version);
     this.openMenuKey.update(v => (v === k ? null : k));
   }
@@ -259,6 +306,10 @@ export class WorkflowDefinitionsComponent implements OnInit {
         this.toast.success('Deleted', `${target.key} v${target.version} removed.`);
         this.confirmDeleteTarget.set(null);
         this.deletingKey.set(null);
+        // If page is now empty and we're past page 1, step back
+        if (this.pagedRows().length === 0 && this.currentPage() > 1) {
+          this.currentPage.update(p => p - 1);
+        }
       },
       error: (err) => {
         this.toast.error('Delete failed', err?.error?.message || 'Backend error.');
@@ -285,5 +336,4 @@ export class WorkflowDefinitionsComponent implements OnInit {
     return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
   }
 }
-
 

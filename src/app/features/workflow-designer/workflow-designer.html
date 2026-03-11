@@ -131,6 +131,7 @@
   [existingKey]="editKey()"
   [existingDescription]="editDescription()"
   [nextVersion]="nextVersion()"
+  [existingKeys]="existingWorkflowKeys()"
   (deploy)="onDeploy($event)"
   (cancel)="onDeployCancel()"
 />
@@ -142,7 +143,6 @@
   [warnings]="validationWarnings()"
   (close)="onValidationModalClose()"
 />
-
 
 
 

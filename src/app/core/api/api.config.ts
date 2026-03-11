@@ -30,8 +30,13 @@ export const API_ENDPOINTS = {
   scanEvents: {
     list:      `${API_BASE}/scan-events`,
   },
+  dashboard: {
+    summary: `${API_BASE}/dashboard/summary`,
+  },
+  tenants: {
+    list: `${API_BASE}/tenants`,
+  },
 } as const;
-
 
 
 

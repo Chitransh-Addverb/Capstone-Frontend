@@ -22,7 +22,6 @@
   position: relative;
   overflow: hidden;
 
-  /* Subtle grid pattern overlay */
   &::before {
     content: '';
     position: absolute;
@@ -35,7 +34,6 @@
     pointer-events: none;
   }
 
-  /* Accent glow in top-right */
   &::after {
     content: '';
     position: absolute;
@@ -75,7 +73,7 @@
 }
 
 .text-display {
-  font-size: 1.75rem;           /* prominent, readable */
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.035em;
@@ -84,7 +82,7 @@
 
 .welcome-sub {
   color: var(--text-secondary);
-  font-size: 0.9375rem;         /* ↑ bigger */
+  font-size: 0.9375rem;
   margin-top: 8px;
   line-height: 1.5;
 }
@@ -120,7 +118,6 @@
   position: relative;
   overflow: hidden;
 
-  /* Subtle top accent line */
   &::before {
     content: '';
     position: absolute;
@@ -194,7 +191,7 @@
 }
 
 .stat-value {
-  font-size: 2.25rem;           /* ↑ large and impactful */
+  font-size: 2.25rem;
   font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.05em;
@@ -203,9 +200,10 @@
 }
 
 .stat-label {
-  font-size: 0.8125rem;         /* ↑ was 0.75rem */
-  color: var(--text-secondary);
+  font-size: 0.9rem;            /* ↑ was 0.8125rem — more readable */
+  color: var(--text-primary);   /* ↑ was secondary — better contrast in dark mode */
   font-weight: 500;
+  opacity: 0.75;                /* slight softening without losing legibility */
 }
 
 .stat-trend {
@@ -216,7 +214,7 @@
   padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
   font-size: 0.75rem;
-  color: var(--text-tertiary);
+  color: var(--text-secondary); /* ↑ was tertiary — more visible in dark mode */
 }
 
 /* ── Section title ───────────────────────────────────────────── */
@@ -228,7 +226,7 @@
 }
 
 .section-title {
-  font-size: 1rem;              /* ↑ was 0.875rem */
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -261,7 +259,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 22px 24px;           /* ↑ more breathing room */
   text-decoration: none;
   background: var(--surface-base);
   border: 1px solid var(--border-default);
@@ -300,9 +298,9 @@
 }
 
 .quick-icon {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
+  width: 52px;                  /* ↑ was 44px */
+  height: 52px;
+  min-width: 52px;
   border-radius: var(--radius-md);
   background: var(--accent-subtle);
   display: flex;
@@ -325,25 +323,26 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;                     /* ↑ slightly more gap */
   position: relative;
   z-index: 1;
 }
 
 .quick-label {
-  font-size: 0.9375rem;         /* ↑ was 0.8125rem */
+  font-size: 1.0625rem;         /* ↑ was 0.9375rem — noticeably bigger */
   font-weight: 600;
   color: var(--text-primary);
+  line-height: 1.2;
 }
 
 .quick-desc {
-  font-size: 0.8125rem;         /* ↑ was 0.7rem */
-  color: var(--text-secondary); /* ↑ was tertiary — dark mode safe */
-  line-height: 1.4;
+  font-size: 0.9rem;            /* ↑ was 0.8125rem — more readable */
+  color: var(--text-secondary);
+  line-height: 1.45;
 }
 
 .quick-arrow {
-  color: var(--text-tertiary);
+  color: var(--text-secondary); /* ↑ was tertiary — more visible */
   flex-shrink: 0;
   transition: transform 200ms ease, color 200ms ease;
   position: relative;
@@ -394,4 +393,7 @@
 
 /* ── Keyframes ───────────────────────────────────────────────── */
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+
+
 

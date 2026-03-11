@@ -189,6 +189,7 @@
           <span class="props-value-mono">{{ selectedElement()?.id }}</span>
         </div>
 
+        <!-- Too many flows -->
         @if ((selectedElement()?.outgoing?.length ?? 0) > 2) {
           <div class="props-info-block warning-block">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
@@ -203,10 +204,27 @@
           </div>
         }
 
+        <!-- Too few flows -->
+        @if ((selectedElement()?.outgoing?.length ?? 0) < 2) {
+          <div class="props-info-block warning-block">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M7 1l6 12H1L7 1z"/>
+              <path d="M7 6v3M7 11h.01"/>
+            </svg>
+            <p>
+              Exactly <strong>2 outgoing flows</strong> are required.
+              Currently has {{ selectedElement()?.outgoing?.length ?? 0 }}.
+              Draw both flows from this gateway first, then save.
+            </p>
+          </div>
+        }
+
+        <!-- Save — only enabled when exactly 2 outgoing flows exist -->
         <button
           class="btn btn-primary btn-sm props-save-btn"
           (click)="saveGateway()"
-          [disabled]="(selectedElement()?.outgoing?.length ?? 0) > 2">
+          [disabled]="(selectedElement()?.outgoing?.length ?? 0) !== 2">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
                stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
             <path d="M2 6l3 3 5-5"/>
@@ -372,7 +390,28 @@
           <span class="props-value-mono">{{ flowTargetName() || '—' }}</span>
         </div>
 
-        <button class="btn btn-primary btn-sm props-save-btn" (click)="savePlainFlow()">
+        @if (selectedElement()?.source?.type === 'bpmn:ServiceTask' &&
+             selectedElement()?.target?.type !== 'bpmn:ExclusiveGateway') {
+          <div class="props-info-block warning-block">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M7 1l6 12H1L7 1z"/>
+              <path d="M7 6v3M7 11h.01"/>
+            </svg>
+            <p>
+              A Service Task's outgoing flow must connect to an
+              <strong>Exclusive Gateway</strong>. Delete this flow and redraw it
+              to the correct target.
+            </p>
+          </div>
+        }
+
+        <!-- Save button — disabled when ServiceTask → non-gateway -->
+        <button
+          class="btn btn-primary btn-sm props-save-btn"
+          (click)="savePlainFlow()"
+          [disabled]="selectedElement()?.source?.type === 'bpmn:ServiceTask' &&
+                      selectedElement()?.target?.type !== 'bpmn:ExclusiveGateway'">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
                stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
             <path d="M2 6l3 3 5-5"/>

@@ -75,13 +75,15 @@
           } @else {
             <input
               class="form-input"
-              [class.form-input-error]="keyError()"
+              [class.form-input-error]="keyError() || duplicateKeyError()"
               type="text"
               placeholder="e.g. scanner-1-workflow"
               [value]="form.workflow_key"
               (input)="onKeyChange($any($event.target).value)"
               [disabled]="deploying()"
             />
+
+            <!-- Format validation error -->
             @if (keyError()) {
               <span class="form-error">
                 <svg width="11" height="11" viewBox="0 0 11 11" fill="none"
@@ -91,7 +93,25 @@
                 </svg>
                 {{ keyError() }}
               </span>
-            } @else {
+            }
+
+            <!-- ── Duplicate key warning ──────────────────────────────── -->
+            @else if (duplicateKeyError()) {
+              <div class="duplicate-warn">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                     stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
+                     class="duplicate-warn-icon">
+                  <path d="M7 1.5L13.5 12.5H0.5L7 1.5z"/>
+                  <path d="M7 5.5v3M7 10v.5"/>
+                </svg>
+                <div>
+                  <p class="duplicate-warn-title">Workflow key already exists</p>
+                  <p class="duplicate-warn-body">{{ duplicateKeyError() }}</p>
+                </div>
+              </div>
+            }
+
+            @else {
               <span class="form-hint">
                 Alphanumeric, hyphens and underscores — e.g. <code>scanner-1-workflow</code>
               </span>

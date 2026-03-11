@@ -1,84 +1,79 @@
-<aside class="sidebar" [class.collapsed]="collapsed()">
+<aside class="sidebar fixed left-0 top-0 bottom-0 z-[100] flex flex-col
+              w-[var(--sidebar-width)] bg-[var(--sidebar-bg)]
+              border-r border-[var(--sidebar-border)]
+              overflow-hidden transition-[width,border-color] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+       [class.is-collapsed]="collapsed()">
 
-  <!-- Logo -->
-  <div class="sidebar-logo">
-    <div class="logo-mark">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <rect width="10" height="10" rx="3" fill="var(--accent-primary)" opacity="0.9"/>
-        <rect x="12" width="10" height="10" rx="3" fill="var(--accent-primary)" opacity="0.5"/>
-        <rect y="12" width="10" height="10" rx="3" fill="var(--accent-primary)" opacity="0.5"/>
-        <rect x="12" y="12" width="10" height="10" rx="3" fill="var(--accent-primary)" opacity="0.25"/>
+  <!-- ══ Logo ═══════════════════════════════════════════════════ -->
+  <div class="flex items-center gap-3 px-5 shrink-0 border-b border-[var(--sidebar-border)]"
+       [style.height]="'var(--topbar-height)'">
+    <div class="shrink-0 w-8 h-8 flex items-center justify-center rounded-[10px]
+                bg-[var(--accent-primary)] shadow-[0_0_20px_rgba(79,70,229,0.5)]">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+        <path d="M2 8 L8 2 L14 8 L8 14 Z" fill="white" opacity="0.95"/>
+        <path d="M5 8 L8 5 L11 8 L8 11 Z" fill="white" opacity="0.45"/>
       </svg>
     </div>
-    <div class="logo-text" [class.hidden]="collapsed()">
-      <span class="logo-name">WorkFlow</span>
-      <span class="logo-sub">Orchestrator</span>
+    <div class="sidebar-text-block overflow-hidden min-w-0">
+      <p class="text-[15px] font-semibold text-white tracking-[-0.02em] leading-none whitespace-nowrap m-0">WorkFlow</p>
+      <p class="text-[10px] font-medium text-white/30 tracking-[0.18em] uppercase whitespace-nowrap m-0 mt-1">Orchestrator</p>
     </div>
   </div>
 
-  <!-- Collapse Toggle -->
-  <button
-    class="collapse-btn"
-    (click)="toggleCollapse()"
-    [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
-  >
-    <svg
-      width="14" height="14" viewBox="0 0 14 14" fill="none"
-      [style.transform]="collapsed() ? 'rotate(180deg)' : 'rotate(0deg)'"
-      style="transition: transform 250ms ease"
-    >
-      <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </button>
+  <!-- ══ Nav ════════════════════════════════════════════════════ -->
+  <nav class="flex-1 overflow-y-auto overflow-x-hidden py-3 sidebar-scrollbar">
 
-  <!-- Navigation -->
-  <nav class="sidebar-nav">
     @for (section of navSections(); track section.title) {
-      <div class="nav-section">
-        @if (!collapsed()) {
-          <span class="nav-section-label">{{ section.title }}</span>
-        }
-        @for (item of section.items; track item.route) {
-          <a
-            class="nav-item"
-            [routerLink]="item.route"
-            routerLinkActive="active"
-            [attr.title]="collapsed() ? item.label : null"
-          >
-            <span class="nav-item-icon" [innerHTML]="icons[item.icon]"></span>
+      <div class="mb-1">
 
-            @if (!collapsed()) {
-              <span class="nav-item-label">{{ item.label }}</span>
+        <!-- Section label -->
+        <div class="sidebar-text-block px-5 pb-2 pt-4">
+          <span class="text-[10px] font-bold tracking-[0.2em] uppercase text-white/25 whitespace-nowrap">
+            {{ section.title }}
+          </span>
+        </div>
+
+        <!-- Nav items -->
+        <div class="px-3 space-y-0.5">
+          @for (item of section.items; track item.route) {
+            <a class="nav-item group relative flex items-center gap-3 px-3 py-[10px] rounded-[10px]
+                      text-[var(--text-sidebar)] no-underline text-[13px] font-[450]
+                      tracking-[-0.01em] whitespace-nowrap cursor-pointer select-none
+                      transition-all duration-150 hover:text-white/90"
+               [routerLink]="item.route" routerLinkActive="active"
+               [attr.title]="collapsed() ? item.label : null">
+
+              <!-- active/hover fill -->
+              <span class="nav-pill absolute inset-0 rounded-[10px] opacity-0 transition-opacity duration-150"></span>
+
+              <!-- icon -->
+              <span class="nav-icon relative z-10 shrink-0 w-[34px] h-[34px] flex items-center justify-center
+                           rounded-[9px] transition-all duration-200 text-white/45
+                           group-hover:text-white/75"
+                    [innerHTML]="icons[item.icon]"></span>
+
+              <!-- label -->
+              <span class="sidebar-text-block relative z-10 flex-1 whitespace-nowrap overflow-hidden
+                           text-[13.5px] font-[450] leading-none">
+                {{ item.label }}
+              </span>
+
+              <!-- badge -->
               @if (item.badge) {
-                <span class="badge badge-{{ item.badgeType }} nav-badge">
+                <span class="sidebar-text-block relative z-10 shrink-0 text-[10px] font-bold
+                             px-2 py-0.5 rounded-[5px] tracking-wide
+                             bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]/90">
                   {{ item.badge }}
                 </span>
               }
-            }
+            </a>
+          }
+        </div>
 
-            @if (collapsed() && item.badge) {
-              <span class="nav-badge-dot"></span>
-            }
-          </a>
-        }
       </div>
     }
+
   </nav>
 
-  <!-- Footer -->
-  <!-- <div class="sidebar-footer">
-    <div class="system-status" [class.collapsed]="collapsed()">
-      <span class="status-dot"></span>
-      @if (!collapsed()) {
-        <div class="status-info">
-          <span class="status-label">System Online</span>
-          <span class="status-sub">All services running</span>
-        </div>
-      }
-    </div>
-  </div> -->
-
 </aside>
-
-
 

@@ -105,11 +105,23 @@
     }
 
     <!-- Refresh — always visible, pushed to the right -->
-    <button class="refresh-icon-btn" (click)="loadAll()" title="Refresh"
-            [class.spinning]="pageLoading()">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
-           stroke-width="1.75" stroke-linecap="round">
-        <path d="M1 6.5A5.5 5.5 0 1012 6.5M1 6.5V2.5M1 6.5H5"/>
+    <!-- Simple universally-recognisable circular-arrow reload icon -->
+    <button class="refresh-icon-btn"
+        (click)="loadAll()"
+        title="Refresh"
+        [class.spinning]="pageLoading()">
+
+      <svg xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round">
+
+        <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+        <polyline points="21 3 21 9 15 9"/>
+
       </svg>
     </button>
   </div>
@@ -153,7 +165,7 @@
     }
 
     <!-- ── No results ── -->
-    @if (allDefinitions().length > 0 && displayRows().rows.length === 0) {
+    @if (allDefinitions().length > 0 && filteredRows().length === 0) {
       <div class="no-results">
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor"
              stroke-width="1.2" stroke-linecap="round">
@@ -165,7 +177,7 @@
     }
 
     <!-- ── Table ── -->
-    @if (displayRows().rows.length > 0) {
+    @if (filteredRows().length > 0) {
       <div class="table-card card">
 
         <div class="table-header">
@@ -177,7 +189,7 @@
         </div>
 
         <div class="table-body">
-          @for (def of displayRows().rows; track def.workflow_key) {
+          @for (def of pagedRows(); track def.workflow_key) {
             <div class="row-group">
 
               <!-- Main row -->
@@ -204,7 +216,6 @@
                 <!-- Version (with expand/collapse toggle) -->
                 <div class="td-version">
                   <span class="ver-tag">v{{ def.version }}</span>
-                  <!-- Always show toggle button; it expands/collapses version history -->
                   <button
                     class="ver-toggle"
                     [class.ver-toggle--open]="isExpanded(def.workflow_key)"
@@ -271,16 +282,6 @@
                             <path d="M9 1.5l2.5 2.5-7 7H2v-2.5l7-7z"/>
                           </svg>
                           Edit in Designer
-                        </button>
-
-                        <button class="dropdown-item"
-                                (click)="openDetail(def, $event)">
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-                               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                            <path d="M1 7s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"/>
-                            <circle cx="7" cy="7" r="1.75"/>
-                          </svg>
-                          View Details
                         </button>
 
                         <div class="dropdown-divider"></div>
@@ -442,6 +443,14 @@
           }
         </div>
 
+        <!-- ── Pagination ── -->
+        <app-pagination
+          [currentPage]="currentPage()"
+          [totalItems]="totalFiltered()"
+          [pageSize]="PAGE_SIZE"
+          (pageChange)="onPageChange($event)"
+        />
+
       </div>
     }
 
@@ -484,6 +493,7 @@
     </div>
   </div>
 }
+
 
 
 

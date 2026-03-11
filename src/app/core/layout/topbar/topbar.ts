@@ -1,10 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ThemeService } from '../../theme/theme.service';
 import { NotificationPanel } from '../../../shared/components/notification-panel/notification-panel';
 import { InstanceService } from '../../../core/services/instance.service';
 import { WorkflowDefinitionService } from '../../../core/services/workflow-definition.service';
+import { SidebarStateService } from '../../api/sidebar-state.service';
 
 @Component({
   selector: 'app-topbar',
@@ -15,20 +16,34 @@ import { WorkflowDefinitionService } from '../../../core/services/workflow-defin
 export class Topbar {
   themeService    = inject(ThemeService);
   instanceService = inject(InstanceService);
+  sidebarState    = inject(SidebarStateService);
 
   private router          = inject(Router);
   private workflowService = inject(WorkflowDefinitionService);
 
-  /**
-   * Change instance:
-   * 1. Clear the session (sessionStorage wiped)
-   * 2. Reset all in-memory workflow state
-   * 3. Navigate to the instance selector — all routed components are destroyed
-   */
-  changeInstance(): void {
+  dropdownOpen    = false;
+  logoutModalOpen = false;
+
+  toggleDropdown(): void  { this.dropdownOpen = !this.dropdownOpen; }
+  openLogoutModal(): void { this.dropdownOpen = false; this.logoutModalOpen = true; }
+  closeLogoutModal(): void { this.logoutModalOpen = false; }
+
+  confirmLogout(): void {
+    this.logoutModalOpen = false;
     this.instanceService.clearSession();
     this.workflowService.clearAll();
     this.router.navigate(['/select-instance']);
   }
+
+  // Close dropdown when clicking outside
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(e: MouseEvent): void {
+    const target = e.target as HTMLElement;
+    if (!target.closest('[data-inst-wrapper]') && !target.closest('.instance-pill')) {
+      this.dropdownOpen = false;
+    }
+  }
 }
+
+
 

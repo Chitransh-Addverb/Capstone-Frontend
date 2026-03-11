@@ -1,13 +1,10 @@
 import { Injectable, signal, computed } from '@angular/core';
 
 export interface InstanceSession {
-  tenantId: string;       // e.g. 'AMTA' — sent as instanceCode header to backend
-  username: string;       // display only (reserved for future backend use)
-  selectedAt: string;     // ISO timestamp
+  tenantId: string;    // e.g. 'AMTA' — sent as instanceCode header to backend
+  username: string;    // display only (reserved for future backend use)
+  selectedAt: string;  // ISO timestamp
 }
-
-export const AVAILABLE_INSTANCES = ['AMTA', 'MERIL', 'SULTANPUR'] as const;
-export type AvailableInstance = (typeof AVAILABLE_INSTANCES)[number];
 
 const SESSION_KEY = 'wos-instance-session';
 
@@ -31,9 +28,7 @@ export class InstanceService {
     }).format(new Date(s.selectedAt));
   });
 
-  /**
-   * Persist session to sessionStorage (tab-scoped — clears on tab close).
-   */
+  /** Persist session to sessionStorage (tab-scoped — clears on tab close). */
   setSession(tenantId: string, username: string): void {
     const session: InstanceSession = {
       tenantId,
@@ -46,10 +41,7 @@ export class InstanceService {
     this._session.set(session);
   }
 
-  /**
-   * Clear session — called when user clicks "Change Instance".
-   * All in-memory Angular signals reset because router destroys + recreates all components.
-   */
+  /** Clear session — called when user signs out. */
   clearSession(): void {
     try {
       sessionStorage.removeItem(SESSION_KEY);
@@ -69,6 +61,4 @@ export class InstanceService {
     }
   }
 }
-
-
 

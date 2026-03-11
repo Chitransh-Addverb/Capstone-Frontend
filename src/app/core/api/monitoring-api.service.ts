@@ -14,7 +14,7 @@ import { API_BASE } from '../api/api.config';
 export interface WorkflowInstanceDto {
   id:            number;
   definitionId:  number;
-  status:        'ACTIVE' | 'COMPLETED' | 'FAILED';
+  status:        'RUNNING' | 'COMPLETED' | 'FAILED';
   startedAt:     string;
   completedAt:   string | null;
   variablesJson: InstanceVariables | null;
@@ -77,7 +77,7 @@ export class MonitoringApiService {
 
   /**
    * GET /api/v1/instances
-   * GET /api/v1/instances?status=ACTIVE
+   * GET /api/v1/instances?status=RUNNING
    * All instances for the current tenant (instanceCode header added by TenantInterceptor).
    */
   listInstances(status?: string): Observable<WorkflowInstanceDto[]> {

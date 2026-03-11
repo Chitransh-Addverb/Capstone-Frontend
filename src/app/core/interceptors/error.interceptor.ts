@@ -16,7 +16,7 @@ export const errorInterceptor: HttpInterceptorFn = (
 
       switch (error.status) {
         case 0:
-          message = 'Cannot connect to server. Is the backend running on port 8080?';
+          message = 'Cannot connect to server';
           break;
         case 400:
           message = error.error?.message || 'Bad request';
@@ -28,7 +28,7 @@ export const errorInterceptor: HttpInterceptorFn = (
           message = error.error?.message || 'Conflict — resource already exists';
           break;
         case 500:
-          message = 'Internal server error. Check backend logs.';
+          message = 'Internal server error';
           break;
         default:
           message = error.error?.message || `Error ${error.status}`;

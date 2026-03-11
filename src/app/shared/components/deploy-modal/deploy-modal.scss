@@ -1,3 +1,5 @@
+/* ── All original styles preserved exactly ─────────────────────────────── */
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -333,7 +335,50 @@
   svg { color: var(--text-tertiary); flex-shrink: 0; }
 }
 
+/* ── NEW: Duplicate key error banner ──────────────────────────────────────── */
+.duplicate-key-banner {
+  display: flex;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  background: rgba(254, 243, 199, 0.5);   // amber-50 equivalent; swap for dark mode token if available
 
+  // Dark mode guard — if you have a --status-warning-bg token, use it instead:
+  // background: var(--status-warning-bg, rgba(254, 243, 199, 0.5));
+}
+
+.duplicate-key-icon {
+  flex-shrink: 0;
+  color: #d97706; // amber-600
+  margin-top: 1px;
+}
+
+.duplicate-key-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.duplicate-key-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #92400e; // amber-800
+}
+
+.duplicate-key-msg {
+  font-size: 0.6875rem;
+  color: #b45309; // amber-700
+  line-height: 1.5;
+
+  code {
+    font-family: var(--font-mono);
+    background: rgba(217, 119, 6, 0.12);
+    padding: 0 4px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+}
 
 
 

@@ -476,13 +476,21 @@ export class PropertiesPanel implements OnChanges {
       return;
     }
 
-    // Hard-block save if more than 2 outgoing flows already exist
     const el = this.selectedElement();
     const outgoingCount = (el?.outgoing || []).length;
+
     if (outgoingCount > 2) {
       this.gatewayNameError.set(
         `This gateway has ${outgoingCount} outgoing flows. Only 2 are allowed. ` +
         `Delete the extra flow(s) before saving.`
+      );
+      return;
+    }
+
+    if (outgoingCount < 2) {
+      this.gatewayNameError.set(
+        `Exactly 2 outgoing flows are required. Currently has ${outgoingCount}. ` +
+        `Draw both flows first, then save.`
       );
       return;
     }

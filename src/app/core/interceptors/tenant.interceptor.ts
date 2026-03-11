@@ -9,7 +9,8 @@ import { InstanceService } from '../services/instance.service';
  * Injects the instanceCode header on every outgoing backend request.
  * Backend reads this header in TenantContext.require() and maps it to tenantId.
  *
- * instanceCode === tenantId — same field, different name by convention.
+ * NOTE: /api/v1/tenants is excluded — it is a public endpoint that has no
+ * tenant context and must not receive the instanceCode header.
  */
 export const tenantInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
@@ -20,6 +21,11 @@ export const tenantInterceptor: HttpInterceptorFn = (
 
   // Only apply to our backend
   if (!req.url.includes('localhost:8080') && !req.url.includes('172.19')) {
+    return next(req);
+  }
+
+  // Public endpoint — no tenant context required
+  if (req.url.includes('/api/v1/tenants')) {
     return next(req);
   }
 
@@ -34,6 +40,5 @@ export const tenantInterceptor: HttpInterceptorFn = (
     setHeaders: { 'instanceCode': tenantId },
   }));
 };
-
 
 
