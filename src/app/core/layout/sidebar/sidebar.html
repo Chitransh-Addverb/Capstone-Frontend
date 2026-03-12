@@ -21,23 +21,25 @@
   </div>
 
   <!-- ══ Nav ════════════════════════════════════════════════════ -->
-  <nav class="flex-1 overflow-y-auto overflow-x-hidden py-3 sidebar-scrollbar">
+  <nav class="flex-1 overflow-y-auto overflow-x-hidden py-4 sidebar-scrollbar">
 
     @for (section of navSections(); track section.title) {
-      <div class="mb-1">
+      <div class="mb-7">
 
         <!-- Section label -->
-        <div class="sidebar-text-block px-5 pb-2 pt-4">
-          <span class="text-[10px] font-bold tracking-[0.2em] uppercase text-white/25 whitespace-nowrap">
+        <div class="sidebar-text-block px-5 pb-3 pt-6">
+          <span class="text-[11px] font-bold tracking-[0.2em] uppercase text-white/25">
             {{ section.title }}
           </span>
+
+          <div class="h-px bg-white/5 mt-2"></div>
         </div>
 
         <!-- Nav items -->
         <div class="px-3 space-y-0.5">
           @for (item of section.items; track item.route) {
-            <a class="nav-item group relative flex items-center gap-3 px-3 py-[10px] rounded-[10px]
-                      text-[var(--text-sidebar)] no-underline text-[13px] font-[450]
+            <a class="nav-item group relative flex items-center gap-3 px-4 py-[25px] rounded-[10px]
+                      text-[var(--text-sidebar)] no-underline text-[20px] font-[450]
                       tracking-[-0.01em] whitespace-nowrap cursor-pointer select-none
                       transition-all duration-150 hover:text-white/90"
                [routerLink]="item.route" routerLinkActive="active"
@@ -47,14 +49,14 @@
               <span class="nav-pill absolute inset-0 rounded-[10px] opacity-0 transition-opacity duration-150"></span>
 
               <!-- icon -->
-              <span class="nav-icon relative z-10 shrink-0 w-[34px] h-[34px] flex items-center justify-center
-                           rounded-[9px] transition-all duration-200 text-white/45
+              <span class="nav-icon relative z-10 shrink-0 w-[38px] h-[38px] flex items-center justify-center
+                           rounded-[9px] transition-all duration-200 text-white/70 bg-white/5
                            group-hover:text-white/75"
                     [innerHTML]="icons[item.icon]"></span>
 
               <!-- label -->
               <span class="sidebar-text-block relative z-10 flex-1 whitespace-nowrap overflow-hidden
-                           text-[13.5px] font-[450] leading-none">
+                           text-[15px] font-[500] leading-none">
                 {{ item.label }}
               </span>
 

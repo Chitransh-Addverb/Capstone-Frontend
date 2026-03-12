@@ -23,9 +23,16 @@ function splitPath(p?: string): string[] {
   return p.split(/[→>]/).map(s => s.trim()).filter(Boolean);
 }
 
+/** Normalize a step/lane name for comparison: lowercase + remove all spaces */
+function normalizeName(s: string | null | undefined): string {
+  return (s ?? '').toLowerCase().replace(/\s+/g, '');
+}
+
+const HISTORY_PAGE_SIZE = 20;
+
 /* ── Types ────────────────────────────────────────────────────── */
-export type TabView      = 'live' | 'history';
-export type StatusFilter = 'ALL' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+export type TabView       = 'live' | 'history';
+export type HistoryFilter = 'ALL' | 'COMPLETED' | 'FAILED';
 
 export interface LiveInstance {
   dto:     WorkflowInstanceDto;
@@ -48,71 +55,128 @@ export class Monitoring implements OnInit, OnDestroy {
   private api = inject(MonitoringApiService);
   private cdr = inject(ChangeDetectorRef);
 
-  activeTab    = signal<TabView>('live');
-  searchQuery  = signal('');
+  /* ── Tabs ─────────────────────────────────────────────────── */
+  activeTab     = signal<TabView>('live');
+  historyFilter = signal<HistoryFilter>('ALL');
+  searchQuery   = signal('');
 
+  /* ── Selection ────────────────────────────────────────────── */
   selectedId     = signal<number | null>(null);
   selectedSource = signal<'live' | 'history'>('live');
 
-  expandedRaw = signal(true);
-  copiedVars  = signal(false);
+  private userHasSelected = false;
 
+  /* ── Variables panel ──────────────────────────────────────── */
+  expandedRaw      = signal(true);
+  copiedVars       = signal(false);
+  refreshingDetail = signal(false);
+
+  /* ── Live instances ───────────────────────────────────────── */
   instances   = signal<LiveInstance[]>([]);
   loadingLive = signal(true);
   liveError   = signal<string | null>(null);
 
-  scanEvents     = signal<ScanEventDto[]>([]);
-  historyPage    = signal(0);
-  historyTotal   = signal(0);
-  historyPages   = signal(0);
+  /* ── History — full dataset ───────────────────────────────── */
+  /**
+   * Holds ALL scan events fetched from the backend (all pages combined).
+   * This is the source of truth for client-side search + filter + pagination.
+   */
+  allScanEvents  = signal<ScanEventDto[]>([]);
   loadingHistory = signal(false);
-  historySearch  = signal('');
+
+  /**
+   * Free-text search — matches scanner_id OR barcode, case-insensitive.
+   * Reacts live on every keystroke; no API calls triggered.
+   */
+  historySearch = signal('');
+
+  /**
+   * Current page index within the CLIENT-SIDE paginated result.
+   * Resets to 0 whenever search text or filter chip changes.
+   */
+  displayPage = signal(0);
 
   historyDetail  = signal<LiveInstance | null>(null);
   loadingHDetail = signal(false);
 
-  // ── Counts (from full instance list, regardless of tab)
+  /* ── Counts (stats bar) ───────────────────────────────────── */
   runningCount   = computed(() => this.instances().filter(i => i.dto.status === 'RUNNING').length);
   completedCount = computed(() => this.instances().filter(i => i.dto.status === 'COMPLETED').length);
   failedCount    = computed(() => this.instances().filter(i => i.dto.status === 'FAILED').length);
 
-  statusFilter = signal<'ALL' | 'RUNNING' | 'COMPLETED' | 'FAILED'>('ALL');
+  /**
+   * Events that match the search text only (ignores status chip).
+   * Drives per-chip counts so they always show what's available for each status
+   * within the current search — before the chip filter narrows it further.
+   */
+  private searchMatchedEvents = computed(() => {
+    const q = this.historySearch().trim().toLowerCase();
+    if (!q) return this.allScanEvents();
+    return this.allScanEvents().filter(e =>
+      (e.scanner_id ?? '').toLowerCase().includes(q) ||
+      (e.barcode    ?? '').toLowerCase().includes(q)
+    );
+  });
 
-  setStatusFilter(status: 'ALL' | 'RUNNING' | 'COMPLETED' | 'FAILED') {
+  /** Per-chip counts — reflect search text, independent of current chip */
+  filteredTotal     = computed(() => this.searchMatchedEvents().length);
+  filteredCompleted = computed(() => this.searchMatchedEvents().filter(e => e.execution_status === 'COMPLETED').length);
+  filteredFailed    = computed(() => this.searchMatchedEvents().filter(e => e.execution_status === 'FAILED').length);
 
-    this.statusFilter.set(status);
+  /**
+   * Full filtered list (search + status chip) across ALL events — no paging.
+   * Used as the source for pagination below.
+   */
+  private allFilteredEvents = computed(() => {
+    const q = this.historySearch().trim().toLowerCase();
+    const f = this.historyFilter();
+    return this.allScanEvents().filter(e => {
+      const matchesSearch = !q ||
+        (e.scanner_id ?? '').toLowerCase().includes(q) ||
+        (e.barcode    ?? '').toLowerCase().includes(q);
+      const matchesStatus = f === 'ALL' || e.execution_status === f;
+      return matchesSearch && matchesStatus;
+    });
+  });
 
-    if (status === 'RUNNING') {
-      this.activeTab.set('live');
-      return;
-    }
+  /** Total number of filtered results — shown in pager */
+  historyTotal  = computed(() => this.allFilteredEvents().length);
+  historyPages  = computed(() => Math.max(1, Math.ceil(this.historyTotal() / HISTORY_PAGE_SIZE)));
 
-    this.activeTab.set('history');
+  /**
+   * The slice of events shown on the current display page.
+   * This is what the history list renders.
+   */
+  filteredScanEvents = computed(() => {
+    const page  = this.displayPage();
+    const start = page * HISTORY_PAGE_SIZE;
+    return this.allFilteredEvents().slice(start, start + HISTORY_PAGE_SIZE);
+  });
 
-    this.loadHistory(0);
-  }
-
-  // ── Instances tab: RUNNING ONLY
+  /* ── Running instances (live tab list) ───────────────────── */
   runningInstances = computed(() => {
     const q = this.searchQuery().toLowerCase();
     return this.instances()
       .filter(i => i.dto.status === 'RUNNING')
       .filter(i => !q ||
-        i.vars.scanner_id?.toLowerCase().includes(q) ||
-        i.vars.barcode?.toLowerCase().includes(q)    ||
+        (i.vars.scanner_id ?? '').toLowerCase().includes(q) ||
+        (i.vars.barcode    ?? '').toLowerCase().includes(q) ||
         String(i.dto.id).includes(q))
       .sort((a, b) => new Date(b.dto.startedAt).getTime() - new Date(a.dto.startedAt).getTime());
   });
 
+  /* ── Detail panel content ─────────────────────────────────── */
   selectedInstance = computed(() => {
     if (this.activeTab() === 'history') return this.historyDetail();
     return this.instances().find(i => i.dto.id === this.selectedId()) ?? null;
   });
 
+  /* ── Polling ──────────────────────────────────────────────── */
   private tickerHandle:    ReturnType<typeof setInterval> | null = null;
   private listPollHandle:  ReturnType<typeof setInterval> | null = null;
   private instancePollMap: Map<number, ReturnType<typeof setInterval>> = new Map();
 
+  /* ── Lifecycle ────────────────────────────────────────────── */
   ngOnInit(): void {
     this.loadLive();
     this.loadHistory();
@@ -127,6 +191,7 @@ export class Monitoring implements OnInit, OnDestroy {
     this.instancePollMap.clear();
   }
 
+  /* ── Initial live load ────────────────────────────────────── */
   loadLive(): void {
     this.loadingLive.set(true);
     this.liveError.set(null);
@@ -135,13 +200,8 @@ export class Monitoring implements OnInit, OnDestroy {
         const live = dtos.map(d => this.toLive(d));
         this.instances.set(live);
         this.loadingLive.set(false);
-        // Only poll RUNNING instances
         live.filter(i => i.dto.status === 'RUNNING').forEach(i => this.startInstancePoll(i.dto.id));
-        // Auto-select first running instance on live tab
-        if (!this.selectedId() && this.activeTab() === 'live') {
-          const pick = live.find(i => i.dto.status === 'RUNNING') ?? null;
-          if (pick) this.selectedId.set(pick.dto.id);
-        }
+        this.maybeAutoSelect(live);
       },
       error: err => {
         this.liveError.set(err?.error?.message ?? err?.message ?? 'Failed to load instances.');
@@ -150,6 +210,49 @@ export class Monitoring implements OnInit, OnDestroy {
     });
   }
 
+  private maybeAutoSelect(live: LiveInstance[]): void {
+    if (this.userHasSelected || this.activeTab() !== 'live') return;
+    const sorted = [...live].sort((a, b) =>
+      new Date(b.dto.startedAt).getTime() - new Date(a.dto.startedAt).getTime());
+    const pick = sorted.find(i => i.dto.status === 'RUNNING') ?? sorted[0] ?? null;
+    if (pick) this.selectedId.set(pick.dto.id);
+  }
+
+  /* ── Manual refresh of the live list ─────────────────────── */
+  refreshLiveList(): void {
+    this.loadingLive.set(true);
+    this.api.listInstances().subscribe({
+      next: dtos => {
+        const current    = this.instances();
+        const currentMap = new Map(current.map(i => [i.dto.id, i]));
+        const merged: LiveInstance[] = dtos.map(d => {
+          const existing = currentMap.get(d.id);
+          if (!existing) {
+            if (d.status === 'RUNNING') {
+              this.startInstancePoll(d.id);
+              if (!this.userHasSelected && this.activeTab() === 'live') this.selectedId.set(d.id);
+            }
+            return this.toLive(d);
+          }
+          if (existing.dto.status !== d.status) {
+            if (d.status !== 'RUNNING') {
+              this.stopInstancePoll(d.id);
+              if (existing.dto.status === 'RUNNING') this.loadHistory();
+            }
+            if (d.status === 'RUNNING') this.startInstancePoll(d.id);
+            return this.toLive(d);
+          }
+          return existing;
+        });
+        this.instances.set(merged);
+        this.loadingLive.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => this.loadingLive.set(false),
+    });
+  }
+
+  /* ── Silent background 5s list refresh ───────────────────── */
   private refreshList(): void {
     this.api.listInstances().subscribe({
       next: dtos => {
@@ -158,21 +261,16 @@ export class Monitoring implements OnInit, OnDestroy {
         const merged: LiveInstance[] = dtos.map(d => {
           const existing = currentMap.get(d.id);
           if (!existing) {
-            if (d.status === 'RUNNING') this.startInstancePoll(d.id);
+            if (d.status === 'RUNNING') {
+              this.startInstancePoll(d.id);
+              if (!this.userHasSelected && this.activeTab() === 'live') this.selectedId.set(d.id);
+            }
             return this.toLive(d);
           }
           if (existing.dto.status !== d.status) {
-            // Status changed — if it's no longer running, stop polling and refresh history
             if (d.status !== 'RUNNING') {
               this.stopInstancePoll(d.id);
-              if (existing.dto.status === 'RUNNING') {
-                // Was running, now done/failed → refresh history tab
-                this.loadHistory();
-                // If this was selected on live tab, auto-deselect (it moved to history)
-                if (this.selectedId() === d.id && this.activeTab() === 'live') {
-                  this.selectedId.set(null);
-                }
-              }
+              if (existing.dto.status === 'RUNNING') this.loadHistory();
             }
             if (d.status === 'RUNNING') this.startInstancePoll(d.id);
             return this.toLive(d);
@@ -185,6 +283,7 @@ export class Monitoring implements OnInit, OnDestroy {
     });
   }
 
+  /* ── Per-instance 3s poll ─────────────────────────────────── */
   private startInstancePoll(id: number): void {
     if (this.instancePollMap.has(id)) return;
     const h = setInterval(() => this.pollOne(id), 3_000);
@@ -203,14 +302,7 @@ export class Monitoring implements OnInit, OnDestroy {
           if (i.dto.id !== id) return i;
           if (dto.status !== 'RUNNING') {
             this.stopInstancePoll(id);
-            if (i.dto.status === 'RUNNING') {
-              // Instance just finished — reload history so it appears there
-              this.loadHistory();
-              // Deselect from live tab if it was selected
-              if (this.selectedId() === id && this.activeTab() === 'live') {
-                this.selectedId.set(null);
-              }
-            }
+            if (i.dto.status === 'RUNNING') this.loadHistory();
           }
           return this.toLive(dto);
         }));
@@ -219,6 +311,27 @@ export class Monitoring implements OnInit, OnDestroy {
     });
   }
 
+  /* ── Refresh ONLY the detail panel (right side) ───────────── */
+  refreshDetail(): void {
+    const id = this.selectedId();
+    if (id == null) return;
+    this.refreshingDetail.set(true);
+    this.api.getInstance(id).subscribe({
+      next: dto => {
+        if (this.activeTab() === 'history') {
+          this.historyDetail.set(this.toLive(dto));
+        } else {
+          this.instances.update(list =>
+            list.map(i => i.dto.id === id ? this.toLive(dto) : i));
+          this.cdr.markForCheck();
+        }
+        this.refreshingDetail.set(false);
+      },
+      error: () => this.refreshingDetail.set(false),
+    });
+  }
+
+  /* ── 1s elapsed ticker ────────────────────────────────────── */
   private startTicker(): void {
     this.tickerHandle = setInterval(() => {
       this.instances.update(list =>
@@ -231,24 +344,40 @@ export class Monitoring implements OnInit, OnDestroy {
     }, 1_000);
   }
 
-  loadHistory(page = 0, status: StatusFilter = 'ALL'): void {
+  /* ── Load history — fetch ALL pages, store in allScanEvents ── */
+  /**
+   * Fetches every backend page (up to 1000 records) and accumulates them
+   * into allScanEvents. This gives the client the full dataset so that
+   * search and status filtering work across ALL records, not just one page.
+   * Client-side pagination (displayPage) then slices the filtered result
+   * into 20-item pages exactly as before.
+   */
+  loadHistory(): void {
     this.loadingHistory.set(true);
+    this.fetchAllPages(0, []);
+  }
 
-    const scanner = this.historySearch().trim() || undefined;
-
-    this.api.listScanEvents(page, 6, scanner).subscribe({
+  private fetchAllPages(page: number, accumulated: ScanEventDto[]): void {
+    this.api.listScanEvents(page, 20).subscribe({
       next: pg => {
-        this.scanEvents.set(pg.content);
-        this.historyPage.set(pg.number);
-        this.historyTotal.set(pg.totalElements);
-        this.historyPages.set(pg.totalPages);
-        this.loadingHistory.set(false);
+        const all = [...accumulated, ...pg.content];
+        if (pg.number < pg.totalPages - 1) {
+          // More pages exist — keep fetching silently
+          this.fetchAllPages(page + 1, all);
+        } else {
+          // All pages fetched — store and stop loading
+          this.allScanEvents.set(all);
+          this.displayPage.set(0);
+          this.loadingHistory.set(false);
+        }
       },
       error: () => this.loadingHistory.set(false),
     });
   }
 
+  /* ── Select history event → load full detail ──────────────── */
   selectHistoryEvent(ev: ScanEventDto): void {
+    this.userHasSelected = true;
     this.selectedId.set(ev.instance_id);
     this.selectedSource.set('history');
     this.historyDetail.set(null);
@@ -268,8 +397,9 @@ export class Monitoring implements OnInit, OnDestroy {
   private scanEventToLive(ev: ScanEventDto): LiveInstance {
     const dto: WorkflowInstanceDto = {
       id: ev.instance_id, definitionId: 0,
-      status:       ev.execution_status as WorkflowInstanceDto['status'],
-      startedAt:    ev.scanned_at, completedAt: ev.scanned_at,
+      status:        ev.execution_status as WorkflowInstanceDto['status'],
+      startedAt:     ev.scanned_at,
+      completedAt:   ev.scanned_at,
       variablesJson: ev.variables_json ? JSON.parse(ev.variables_json) : {
         scanner_id: ev.scanner_id, barcode: ev.barcode,
         weight: ev.weight, length: ev.length, width: ev.width, height: ev.height,
@@ -280,6 +410,7 @@ export class Monitoring implements OnInit, OnDestroy {
     return this.toLive(dto);
   }
 
+  /* ── Helpers ──────────────────────────────────────────────── */
   private toLive(dto: WorkflowInstanceDto): LiveInstance {
     const vars    = parseVars(dto.variablesJson);
     const steps   = splitPath(vars.executionPath);
@@ -293,21 +424,83 @@ export class Monitoring implements OnInit, OnDestroy {
     ) / 1_000));
   }
 
+  /** Returns true if a step name contains "invalid" (case-insensitive). */
+  isInvalidStep(step: string): boolean {
+    return step.toLowerCase().includes('invalid');
+  }
+
+  /**
+   * Returns true if a step is the finalLane step and should be SKIPPED
+   * in the execution path loop (rendered separately as the green-arrow node).
+   *
+   * Checks BOTH `finalLane` (camelCase) and `lane_name` (snake_case) because
+   * the backend may send either key depending on the source (live vs history).
+   * Uses normalized comparison (lowercase + strip spaces) to handle
+   * formatting differences like "Lane2" vs "Lane 2".
+   */
+  isFinalLaneStep(step: string, vars: InstanceVariables | null): boolean {
+    if (!vars) return false;
+    const lane = vars.finalLane ?? vars.lane_name;
+    if (!lane) return false;
+    return normalizeName(step) === normalizeName(lane);
+  }
+
+  /* ── UI actions ───────────────────────────────────────────── */
   selectInstance(id: number): void {
+    this.userHasSelected = true;
     this.selectedId.set(id);
     this.selectedSource.set('live');
     this.historyDetail.set(null);
     this.expandedRaw.set(true);
   }
 
-  setTab(t: TabView): void {
-    this.activeTab.set(t);
+  closeDetail(): void {
+    this.userHasSelected = false;
+    this.selectedId.set(null);
+    this.historyDetail.set(null);
+  }
+
+  goToHistory(filter: HistoryFilter = 'ALL'): void {
+    this.historyFilter.set(filter);
+    this.activeTab.set('history');
+    this.userHasSelected = false;
     this.selectedId.set(null);
     this.historyDetail.set(null);
     this.expandedRaw.set(true);
+    this.displayPage.set(0);
+  }
+
+  setTab(t: TabView): void {
+    this.activeTab.set(t);
+    this.userHasSelected = false;
+    this.selectedId.set(null);
+    this.historyDetail.set(null);
+    this.expandedRaw.set(true);
+    this.displayPage.set(0);
+    if (t === 'live') {
+      setTimeout(() => this.maybeAutoSelect(this.instances()), 0);
+    }
+  }
+
+  setHistoryFilter(f: HistoryFilter): void {
+    this.historyFilter.set(f);
+    this.displayPage.set(0); // reset to first page on filter change
+  }
+
+  /** Called on every search keystroke — resets to page 1 */
+  onHistorySearchChange(value: string): void {
+    this.historySearch.set(value);
+    this.displayPage.set(0);
   }
 
   toggleRaw(): void { this.expandedRaw.update(v => !v); }
+
+  /** Resets search text AND status chip, goes back to page 1 */
+  resetHistorySearch(): void {
+    this.historySearch.set('');
+    this.historyFilter.set('ALL');
+    this.displayPage.set(0);
+  }
 
   async copyVars(): Promise<void> {
     const inst = this.selectedInstance();
@@ -319,18 +512,26 @@ export class Monitoring implements OnInit, OnDestroy {
     } catch { /* ignore */ }
   }
 
-  historyPrev(): void { if (this.historyPage() > 0) this.loadHistory(this.historyPage() - 1); }
-  historyNext(): void { if (this.historyPage() < this.historyPages() - 1) this.loadHistory(this.historyPage() + 1); }
-  onHistorySearch(): void { this.loadHistory(0); }
+  historyPrev(): void {
+    if (this.displayPage() > 0) this.displayPage.update(p => p - 1);
+  }
+  historyNext(): void {
+    if (this.displayPage() < this.historyPages() - 1) this.displayPage.update(p => p + 1);
+  }
 
+  /* ── Formatters ───────────────────────────────────────────── */
   fmtTime(iso: string | null | undefined): string {
     if (!iso) return '—';
-    return new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(iso));
+    return new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).format(new Date(iso));
   }
 
   fmtDateTime(iso: string | null | undefined): string {
     if (!iso) return '—';
-    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+    }).format(new Date(iso));
   }
 
   fmtElapsed(secs: number): string {
@@ -353,5 +554,6 @@ export class Monitoring implements OnInit, OnDestroy {
     try { return JSON.stringify(JSON.parse(s), null, 2); } catch { return s; }
   }
 }
+
 
 

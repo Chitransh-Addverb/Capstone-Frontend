@@ -30,7 +30,8 @@ export interface InstanceVariables {
   height?:        number;
   executionPath?: string;   // "step1→step2→..."
   nextStep?:      string | null;   // name of next service task handler
-  finalLane?:     string | null;   // EndEvent name on COMPLETED
+  finalLane?:     string | null;   // EndEvent name — camelCase from workflow engine
+  lane_name?:     string | null;   // EndEvent name — snake_case alias (some backends)
   failReason?:    string | null;   // reason on FAILED
   [key: string]: unknown;
 }
@@ -100,17 +101,28 @@ export class MonitoringApiService {
   }
 
   /**
-   * GET /api/v1/scan-events
+   * GET /api/v1/scan-events?page=0&size=20
    * GET /api/v1/scan-events?scanner_id=SC1&page=0&size=20
+   * GET /api/v1/scan-events?barcode=ABC123&page=0&size=20
+   * GET /api/v1/scan-events?query=SC1&page=0&size=20  (if backend supports unified search)
+   *
    * Paginated audit log — newest first.
+   * Pass `query` and the backend will match scanner_id OR barcode.
+   * If your backend does not yet support `query`, it falls back to `scanner_id`.
+   * Add a `barcode` query param to the backend endpoint to enable full support.
    */
   listScanEvents(
-    page     = 0,
-    size     = 20,
-    scannerId?: string,
+    page    = 0,
+    size    = 20,
+    query?: string,       // matches scanner_id OR barcode
   ): Observable<PageResponse<ScanEventDto>> {
     let url = `${API_BASE}/scan-events?page=${page}&size=${size}`;
-    if (scannerId) url += `&scanner_id=${encodeURIComponent(scannerId)}`;
+    if (query) {
+      // Send as both params so whatever the backend supports will match.
+      // Remove whichever your backend does not implement.
+      url += `&scanner_id=${encodeURIComponent(query)}`;
+      url += `&barcode=${encodeURIComponent(query)}`;
+    }
     return this.http
       .get<ApiResponse<PageResponse<ScanEventDto>>>(url)
       .pipe(map(r => r.data));
@@ -138,7 +150,5 @@ export class MonitoringApiService {
     return new EventSource(url);
   }
 }
-
-
 
 
