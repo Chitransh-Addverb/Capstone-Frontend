@@ -1,0 +1,114 @@
+/* ── Collapsed state ─────────────────────────────────────────── */
+.sidebar.is-collapsed { width: 0; border-right-color: transparent; }
+
+.sidebar.is-collapsed .sidebar-text-block {
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+}
+
+.sidebar-text-block {
+  transition:
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(.4,0,.2,1);
+}
+
+.sidebar-text-block { transition: opacity 180ms ease; }
+
+.nav-pill {
+  position: absolute;
+  inset: 4px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  opacity: 0;
+  transform: scale(0.96);
+  transition: all 180ms cubic-bezier(.4,0,.2,1);
+}
+
+.nav-item:hover .nav-pill {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.nav-item {
+  width: 100%;
+}
+
+.sidebar nav > div {
+  position: relative;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+}
+
+.sidebar nav > div::after {
+  content: "";
+  display: block;
+  width: 70%;
+  height: 1px;
+  margin: 18px auto 0;
+  background: rgba(255,255,255,0.06);
+}
+
+.nav-icon {
+  color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.04);
+}
+
+.nav-item:hover .nav-icon {
+  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.08);
+}
+
+/* ── Nav item: hover ──────────────────────────────────────────── */
+.nav-item:not(.active):hover .nav-pill {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Nav item: active ─────────────────────────────────────────── */
+.nav-item.active {
+  color: #fff;
+}
+.nav-item.active .nav-pill {
+  opacity: 0.5;
+  background: rgba(79,70,229,0.18);
+  box-shadow:
+    0 0 0 1px rgba(79,70,229,0.25),
+    0 8px 24px rgba(79,70,229,0.25);
+}
+.nav-item.active .nav-icon {
+  color: #818cf8;
+  background: rgba(79,70,229,0.25);
+  box-shadow: 0 0 12px rgba(79,70,229,0.4);
+}
+/* accent bar */
+.nav-item.active::before {
+  content: '';
+  position: absolute; left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 60%;
+  background: var(--accent-primary);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 12px rgba(79, 70, 229, 0.7);
+  z-index: 20;
+}
+
+/* ── Custom scrollbar ─────────────────────────────────────────── */
+.sidebar-scrollbar::-webkit-scrollbar-track  { background: transparent; }
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+
+
+

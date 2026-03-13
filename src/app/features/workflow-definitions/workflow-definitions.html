@@ -1,0 +1,499 @@
+<div class="definitions-page">
+
+  <!-- ── Page Header ── -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-icon">
+        <svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <path d="M15 3H3a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1z"/>
+          <path d="M6 7h6M6 10h6M6 13h4"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="page-title">Workflow Definitions</h1>
+        <p class="page-subtitle">Manage, version and activate BPMN workflows</p>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-chip">
+        <span class="stat-value">{{ totalWorkflows() }}</span>
+        <span class="stat-label">Workflows</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-chip">
+        <span class="stat-dot active-dot"></span>
+        <span class="stat-value active-val">{{ activeCount() }}</span>
+        <span class="stat-label">Active</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-chip">
+        <span class="stat-value">{{ totalVersions() }}</span>
+        <span class="stat-label">Versions</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" (click)="goToDesigner()">
+      <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round">
+        <path d="M6.5 1v11M1 6.5h11"/>
+      </svg>
+      New Workflow
+    </button>
+  </div>
+
+  <!-- ── Filter Bar ── -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 14 14" fill="none"
+           stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="6" cy="6" r="4.5"/>
+        <path d="M9.5 9.5l3 3"/>
+      </svg>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Search workflows…"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="setSearch($event)"
+        autocomplete="off"
+      />
+      @if (searchQuery()) {
+        <button class="search-clear" (click)="setSearch('')" title="Clear">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round">
+            <path d="M1 1l10 10M11 1L1 11"/>
+          </svg>
+        </button>
+      }
+    </div>
+
+    <div class="filter-pills">
+      <button class="pill" [class.pill-on]="statusFilter() === 'all'"
+              (click)="setStatus('all')">All</button>
+      <button class="pill" [class.pill-on]="statusFilter() === 'active'"
+              (click)="setStatus('active')">
+        <span class="pill-dot dot-active"></span>Active
+      </button>
+      <button class="pill" [class.pill-on]="statusFilter() === 'inactive'"
+              (click)="setStatus('inactive')">
+        <span class="pill-dot dot-inactive"></span>Inactive
+      </button>
+    </div>
+
+    <div class="sort-wrap">
+      <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linecap="round">
+        <path d="M1 3h11M3 6.5h7M5 10h3"/>
+      </svg>
+      <select class="sort-select" [ngModel]="sortBy()" (ngModelChange)="setSort($event)">
+        <option value="updated">Last updated</option>
+        <option value="name">Name A–Z</option>
+        <option value="version">Version</option>
+      </select>
+    </div>
+
+    @if (hasActiveFilters()) {
+      <button class="reset-btn" (click)="clearAll()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 6A5 5 0 1011 6M1 6V2M1 6H5"/>
+        </svg>
+        Reset
+      </button>
+    }
+
+    <!-- Refresh — always visible, pushed to the right -->
+    <!-- Simple universally-recognisable circular-arrow reload icon -->
+    <button class="refresh-icon-btn"
+        (click)="loadAll()"
+        title="Refresh"
+        [class.spinning]="pageLoading()">
+
+      <svg xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round">
+
+        <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+        <polyline points="21 3 21 9 15 9"/>
+
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── Loading ── -->
+  @if (pageLoading()) {
+    <div class="page-loading">
+      <div class="loading-ring"></div>
+      <span>Loading workflows…</span>
+    </div>
+  }
+
+  <!-- ── Error ── -->
+  @if (pageError() && !pageLoading()) {
+    <div class="error-banner">
+      <svg width="16" height="16" viewBox="0 0 15 15" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linecap="round">
+        <circle cx="7.5" cy="7.5" r="6"/><path d="M7.5 4.5v4M7.5 11v.5"/>
+      </svg>
+      {{ pageError() }}
+      <button class="btn btn-sm btn-ghost" (click)="loadAll()">Retry</button>
+    </div>
+  }
+
+  @if (!pageLoading() && !pageError()) {
+
+    <!-- ── Empty ── -->
+    @if (allDefinitions().length === 0) {
+      <div class="empty-state card">
+        <div class="empty-icon">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor"
+               stroke-width="1.2" stroke-linecap="round">
+            <path d="M28 6H8a2 2 0 00-2 2v20a2 2 0 002 2h20a2 2 0 002-2V8a2 2 0 00-2-2z"/>
+            <path d="M12 14h12M12 19h12M12 24h8"/>
+          </svg>
+        </div>
+        <h3 class="empty-title">No workflows yet</h3>
+        <p class="empty-desc">Create your first BPMN workflow using the designer.</p>
+        <button class="btn btn-primary" (click)="goToDesigner()">Open Designer</button>
+      </div>
+    }
+
+    <!-- ── No results ── -->
+    @if (allDefinitions().length > 0 && filteredRows().length === 0) {
+      <div class="no-results">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor"
+             stroke-width="1.2" stroke-linecap="round">
+          <circle cx="14" cy="14" r="9"/><path d="M21.5 21.5l7 7"/>
+        </svg>
+        <p>No workflows match your filters.</p>
+        <button class="reset-btn" (click)="clearAll()">Clear filters</button>
+      </div>
+    }
+
+    <!-- ── Table ── -->
+    @if (filteredRows().length > 0) {
+      <div class="table-card card">
+
+        <div class="table-header">
+          <div class="th">Workflow</div>
+          <div class="th">Version</div>
+          <div class="th">Status</div>
+          <div class="th">Updated</div>
+          <div class="th th-actions">Actions</div>
+        </div>
+
+        <div class="table-body">
+          @for (def of pagedRows(); track def.workflow_key) {
+            <div class="row-group">
+
+              <!-- Main row -->
+              <div class="table-row" [class.row-expanded]="isExpanded(def.workflow_key)">
+
+                <!-- Workflow -->
+                <div class="td-workflow">
+                  <div class="workflow-avatar">{{ getAvatarLetter(def) }}</div>
+                  <div class="workflow-info">
+                    <span class="workflow-key"
+                          [innerHTML]="highlightMatch(def.workflow_key, searchQuery())"></span>
+                    @if (def.description) {
+                      <span class="workflow-desc">
+                        {{ def.description.length > 60
+                          ? (def.description | slice:0:60) + '…'
+                          : def.description }}
+                      </span>
+                    } @else {
+                      <span class="workflow-desc no-desc">No description</span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Version (with expand/collapse toggle) -->
+                <div class="td-version">
+                  <span class="ver-tag">v{{ def.version }}</span>
+                  <button
+                    class="ver-toggle"
+                    [class.ver-toggle--open]="isExpanded(def.workflow_key)"
+                    (click)="toggleVersions(def.workflow_key, $event)"
+                    [title]="isExpanded(def.workflow_key) ? 'Collapse history' : 'Expand history'"
+                  >
+                    <svg class="ver-chevron" width="12" height="12" viewBox="0 0 10 10"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 3l3 3 3-3"/>
+                    </svg>
+                    <span>{{ isExpanded(def.workflow_key) ? 'Hide' : 'History' }}</span>
+                  </button>
+                </div>
+
+                <!-- Status -->
+                <div class="td-status">
+                  <span class="badge"
+                        [class.badge-success]="def.status === 'active'"
+                        [class.badge-neutral]="def.status === 'inactive'">
+                    @if (def.status === 'active') { <span class="status-pulse"></span> }
+                    {{ def.status === 'active' ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+
+                <!-- Updated -->
+                <div class="td-date">{{ formatDate(def.updatedAt) }}</div>
+
+                <!-- Actions -->
+                <div class="td-actions">
+
+                  <!-- Eye -->
+                  <button class="action-icon-btn" title="View details"
+                          (click)="openDetail(def, $event)"
+                          [disabled]="!!togglingKey()">
+                    <svg width="15" height="15" viewBox="0 0 14 14" fill="none"
+                         stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                      <path d="M1 7s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"/>
+                      <circle cx="7" cy="7" r="1.75"/>
+                    </svg>
+                  </button>
+
+                  <!-- 3-dot menu -->
+                  <div class="menu-wrap">
+                    <button class="action-icon-btn btn-dots"
+                            [class.btn-dots--open]="isMenuOpen(def.workflow_key, def.version)"
+                            (click)="toggleMenu(def.workflow_key, def.version, $event)"
+                            title="More options"
+                            [attr.aria-expanded]="isMenuOpen(def.workflow_key, def.version)">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="8" cy="3.5" r="1.1" fill="currentColor"/>
+                        <circle cx="8" cy="8"   r="1.1" fill="currentColor"/>
+                        <circle cx="8" cy="12.5" r="1.1" fill="currentColor"/>
+                      </svg>
+                    </button>
+
+                    @if (isMenuOpen(def.workflow_key, def.version)) {
+                      <div class="dropdown-menu" (click)="$event.stopPropagation()">
+
+                        <button class="dropdown-item"
+                                (click)="editWorkflow(def, $event)">
+                          <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+                               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                            <path d="M9 1.5l2.5 2.5-7 7H2v-2.5l7-7z"/>
+                          </svg>
+                          Edit in Designer
+                        </button>
+
+                        <div class="dropdown-divider"></div>
+
+                        @if (def.status !== 'active') {
+                          <button class="dropdown-item item-activate"
+                                  (click)="activate(def, $event)"
+                                  [disabled]="isToggling(def.workflow_key, def.version)">
+                            @if (isToggling(def.workflow_key, def.version)) {
+                              <span class="wf-spinner"></span> Activating…
+                            } @else {
+                              <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+                                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <path d="M10.5 6.5l-7-4v8l7-4z"/>
+                              </svg>
+                              Activate
+                            }
+                          </button>
+                        } @else {
+                          <button class="dropdown-item item-deactivate"
+                                  (click)="deactivate(def, $event)"
+                                  [disabled]="isToggling(def.workflow_key, def.version)">
+                            @if (isToggling(def.workflow_key, def.version)) {
+                              <span class="wf-spinner"></span> Pausing…
+                            } @else {
+                              <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+                                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <rect x="2.5" y="2.5" width="2.5" height="8" rx="0.5"/>
+                                <rect x="8"   y="2.5" width="2.5" height="8" rx="0.5"/>
+                              </svg>
+                              Deactivate
+                            }
+                          </button>
+                        }
+
+                        <div class="dropdown-divider"></div>
+
+                        <button class="dropdown-item item-delete"
+                                (click)="confirmDelete(def, $event)">
+                          <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+                               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                            <path d="M1.5 3.5h10M4.5 3.5V2.5h4v1M5.5 6.5v3M7.5 6.5v3
+                                     M2.5 3.5l.75 7.5a1 1 0 001 .9h5.5a1 1 0 001-.9l.75-7.5"/>
+                          </svg>
+                          Delete
+                        </button>
+
+                      </div>
+                    }
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- ── Version History Panel ── -->
+              @if (isExpanded(def.workflow_key)) {
+                <div class="version-panel" (click)="$event.stopPropagation()">
+
+                  <div class="version-panel-header">
+                    <div class="version-panel-label">
+                      <svg width="13" height="13" viewBox="0 0 12 12" fill="none"
+                           stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <circle cx="6" cy="6" r="4.5"/>
+                        <path d="M6 3.5v2.5l1.5 1.5"/>
+                      </svg>
+                      Version History — {{ def.workflow_key }}
+                    </div>
+                    <button class="panel-close-btn"
+                            (click)="toggleVersions(def.workflow_key, $event)"
+                            title="Collapse">
+                      <svg width="12" height="12" viewBox="0 0 10 10" fill="none"
+                           stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M2 7l3-3 3 3"/>
+                      </svg>
+                      Collapse
+                    </button>
+                  </div>
+
+                  @if (!loadedKeys().has(def.workflow_key)) {
+                    <div class="version-loading">
+                      <span class="wf-spinner"></span> Loading versions…
+                    </div>
+                  } @else {
+                    <div class="version-list">
+                      @for (ver of getVersionsForKey(def.workflow_key); track ver.version) {
+                        <div class="version-row"
+                             [class.version-row--current]="ver.version === def.version">
+
+                          <span class="ver-tag"
+                                [class.ver-current]="ver.version === def.version">
+                            v{{ ver.version }}
+                            @if (ver.version === def.version) {
+                              <span class="ver-latest-badge">latest</span>
+                            }
+                          </span>
+
+                          <span class="ver-date">
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                              <rect x="1.5" y="2.5" width="9" height="8" rx="1"/>
+                              <path d="M4 1.5v2M8 1.5v2M1.5 5.5h9"/>
+                            </svg>
+                            {{ formatDate(ver.updatedAt) }}
+                          </span>
+
+                          <span class="badge"
+                                [class.badge-success]="ver.status === 'active'"
+                                [class.badge-neutral]="ver.status === 'inactive'">
+                            @if (ver.status === 'active') { <span class="status-pulse"></span> }
+                            {{ ver.status === 'active' ? 'Active' : 'Inactive' }}
+                          </span>
+
+                          <div class="ver-actions">
+                            <button class="action-icon-btn"
+                                    (click)="openDetail(ver, $event)"
+                                    title="View details">
+                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <path d="M1 7s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"/>
+                                <circle cx="7" cy="7" r="1.75"/>
+                              </svg>
+                            </button>
+                            <button class="action-icon-btn"
+                                    (click)="editWorkflow(ver, $event)"
+                                    title="Edit this version">
+                              <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+                                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <path d="M9 1.5l2.5 2.5-7 7H2v-2.5l7-7z"/>
+                              </svg>
+                            </button>
+
+                            @if (ver.status !== 'active') {
+                              <button class="ver-action-btn ver-activate"
+                                      [disabled]="!!togglingKey()"
+                                      (click)="activate(ver, $event)">
+                                @if (isToggling(ver.workflow_key, ver.version)) {
+                                  <span class="wf-spinner"></span>
+                                } @else { Activate }
+                              </button>
+                            } @else {
+                              <button class="ver-action-btn ver-deactivate"
+                                      [disabled]="!!togglingKey()"
+                                      (click)="deactivate(ver, $event)">
+                                @if (isToggling(ver.workflow_key, ver.version)) {
+                                  <span class="wf-spinner"></span>
+                                } @else { Deactivate }
+                              </button>
+                            }
+                          </div>
+
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+            </div>
+          }
+        </div>
+
+        <!-- ── Pagination ── -->
+        <app-pagination
+          [currentPage]="currentPage()"
+          [totalItems]="totalFiltered()"
+          [pageSize]="PAGE_SIZE"
+          (pageChange)="onPageChange($event)"
+        />
+
+      </div>
+    }
+
+  }
+
+</div>
+
+<!-- Detail Modal -->
+<app-workflow-detail-modal
+  [visible]="showDetailModal()"
+  [definition]="selectedDefinition()"
+  (close)="closeDetail()"
+/>
+
+<!-- Delete Confirm Modal -->
+@if (confirmDeleteTarget()) {
+  <div class="modal-backdrop" (click)="cancelDelete()">
+    <div class="confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">
+        <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <path d="M10 7v5M10 14v1"/>
+          <path d="M8.3 3l-7 12a2 2 0 001.7 3h14a2 2 0 001.7-3l-7-12a2 2 0 00-3.4 0z"/>
+        </svg>
+      </div>
+      <h3 class="confirm-title">Delete Workflow?</h3>
+      <p class="confirm-desc">
+        <strong>{{ confirmDeleteTarget()!.key }} v{{ confirmDeleteTarget()!.version }}</strong>
+        will be permanently removed. This action cannot be undone.
+      </p>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" (click)="cancelDelete()"
+                [disabled]="!!deletingKey()">Cancel</button>
+        <button class="btn btn-danger" (click)="executeDelete()"
+                [disabled]="!!deletingKey()">
+          @if (deletingKey()) { <span class="wf-spinner"></span> Deleting… }
+          @else { Delete }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+
+
+

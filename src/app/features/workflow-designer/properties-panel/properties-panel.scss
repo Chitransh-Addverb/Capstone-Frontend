@@ -1,0 +1,414 @@
+/* ──────────────────────────────────────────────────────────────────
+   PropertiesPanel — src/app/workflow-designer/properties-panel/
+   Slides in from the right when a canvas element is selected.
+   Matches the existing designer shell theme variables exactly.
+   ────────────────────────────────────────────────────────────────── */
+
+:host {
+  display: block;
+  width: 0;
+  overflow: hidden;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  border-left: 0px solid var(--border-subtle);
+}
+
+:host.panel-open {
+  width: 280px;
+  border-left-width: 1px;
+}
+
+.props-panel {
+  width: 280px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.props-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.props-empty-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--surface-base);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.props-empty-text {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.props-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  background: var(--surface-base);
+}
+
+.props-type-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+
+  &[data-type='start'] {
+    background: var(--status-success-bg, rgba(34,197,94,0.1));
+    color: var(--status-success, #22c55e);
+  }
+  &[data-type='end'] {
+    background: rgba(239,68,68,0.1);
+    color: #ef4444;
+  }
+  &[data-type='task'] {
+    background: var(--accent-subtle);
+    color: var(--accent-primary);
+  }
+  &[data-type='gateway'] {
+    background: var(--status-warning-bg, rgba(234,179,8,0.1));
+    color: var(--status-warning, #eab308);
+  }
+  &[data-type='flow'] {
+    background: var(--surface-ground);
+    color: var(--text-secondary);
+  }
+}
+
+.props-type-icon {
+  display: flex;
+  align-items: center;
+}
+
+.props-close-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+
+  &:hover {
+    background: var(--surface-ground);
+    color: var(--text-primary);
+  }
+}
+
+/* ── Body ────────────────────────────────────────────────────────── */
+.props-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 2px;
+  }
+}
+
+/* ── Info block ──────────────────────────────────────────────────── */
+.props-info-block {
+  display: flex;
+  gap: 9px;
+  padding: 10px 12px;
+  background: var(--surface-ground);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  p {
+    font-size: 0.75rem;
+    line-height: 1.55;
+    margin: 0;
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      background: var(--surface-base);
+      padding: 1px 4px;
+      border-radius: 3px;
+      border: 1px solid var(--border-subtle);
+    }
+  }
+}
+
+/* ── Field ───────────────────────────────────────────────────────── */
+.props-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.props-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.props-required {
+  color: #ef4444;
+  font-size: 0.75rem;
+}
+
+.props-input-wrap {
+  position: relative;
+
+  &.error {
+    .props-input,
+    .props-select,
+    .props-textarea {
+      border-color: #ef4444 !important;
+      background: rgba(239,68,68,0.04);
+    }
+  }
+}
+
+.props-input,
+.props-select,
+.props-textarea {
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--surface-base);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+  }
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+}
+
+.props-select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.props-textarea {
+  resize: vertical;
+  min-height: 72px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.props-error-msg {
+  font-size: 0.6875rem;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &::before {
+    content: '⚠';
+  }
+}
+
+.props-hint {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  margin: 0;
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    background: var(--surface-ground);
+    padding: 1px 4px;
+    border-radius: 3px;
+    border: 1px solid var(--border-subtle);
+    color: var(--accent-primary);
+  }
+}
+
+.props-value-mono {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  background: var(--surface-ground);
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  word-break: break-all;
+}
+
+/* ── Gateway flows summary ───────────────────────────────────────── */
+.props-flows-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.props-flow-item {
+  padding: 8px 10px;
+  background: var(--surface-ground);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &.has-condition {
+    border-color: var(--status-success, #22c55e);
+    background: var(--status-success-bg, rgba(34,197,94,0.05));
+  }
+}
+
+.props-flow-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flow-arrow-icon {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.flow-target-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-status-badge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+
+  &.ok {
+    background: rgba(34,197,94,0.1);
+    color: var(--status-success, #22c55e);
+  }
+}
+
+.flow-condition-preview {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-tertiary);
+  word-break: break-all;
+}
+
+/* ── Save button ─────────────────────────────────────────────────── */
+.props-save-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* ── Auto-label display (Success / Failure) ──────────────────────── */
+.auto-label-display {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid;
+
+  &.success {
+    background: rgba(34,197,94,0.08);
+    border-color: rgba(34,197,94,0.3);
+    color: var(--status-success, #22c55e);
+  }
+
+  &.failure {
+    background: rgba(239,68,68,0.08);
+    border-color: rgba(239,68,68,0.3);
+    color: #ef4444;
+  }
+
+  &:not(.success):not(.failure) {
+    background: var(--surface-ground);
+    border-color: var(--border-subtle);
+    color: var(--text-tertiary);
+  }
+
+  span:not(.auto-tag) {
+    flex: 1;
+  }
+}
+
+.auto-tag {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  background: currentColor;
+  color: white !important;
+  border-radius: var(--radius-full);
+  opacity: 0.5;
+}
+
+

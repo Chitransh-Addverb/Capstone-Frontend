@@ -1,0 +1,49 @@
+@if (totalPages > 1) {
+    <div class="pagination-bar">
+
+        <span class="pagination-info">
+            Showing <strong>{{ rangeStart }}–{{ rangeEnd }}</strong> of
+            <strong>{{ totalItems }}</strong>
+        </span>
+
+        <div class="pagination-controls">
+
+            <!-- Prev -->
+            <button class="page-btn" (click)="go(currentPage - 1)"
+                    [disabled]="currentPage === 1" title="Previous">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+                    stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8.5 10.5L4.5 6.5l4-4"/>
+            </svg>
+            </button>
+
+            <!-- Page numbers -->
+            @for (p of pages; track $index) {
+            @if (p === -1) {
+                <span class="page-ellipsis">…</span>
+            } @else {
+                <button class="page-btn"
+                        [class.page-btn--active]="p === currentPage"
+                        (click)="go(p)">
+                {{ p }}
+                </button>
+            }
+            }
+
+            <!-- Next -->
+            <button class="page-btn" (click)="go(currentPage + 1)"
+                    [disabled]="currentPage === totalPages" title="Next">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+                    stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4.5 2.5l4 4-4 4"/>
+            </svg>
+            </button>
+
+        </div>
+    </div>
+}
+
+
+

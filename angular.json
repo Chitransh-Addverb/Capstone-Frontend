@@ -30,6 +30,9 @@
               }
             ],
             "styles": [
+              "node_modules/bpmn-js/dist/assets/diagram-js.css",
+              "node_modules/bpmn-js/dist/assets/bpmn-font/css/bpmn.css",
+              "src/tailwind.css",
               "src/styles.scss"
             ]
           },

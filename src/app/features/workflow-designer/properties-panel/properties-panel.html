@@ -1,0 +1,473 @@
+<div class="props-panel" [class.visible]="selectedElement() !== null">
+
+  <!-- Empty state -->
+  @if (!selectedElement()) {
+    <div class="props-empty">
+      <div class="props-empty-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M10 2a8 8 0 100 16A8 8 0 0010 2z" stroke-opacity="0.4"/>
+          <path d="M10 7v3M10 13h.01"/>
+        </svg>
+      </div>
+      <p class="props-empty-text">Select an element to edit its properties</p>
+    </div>
+  }
+
+  @if (selectedElement()) {
+
+    <!-- Panel Header -->
+    <div class="props-header">
+      <div class="props-type-badge" [attr.data-type]="elementTypeKey()">
+        <span class="props-type-icon" [innerHTML]="elementTypeIcon()"></span>
+        <span class="props-type-label">{{ elementTypeLabel() }}</span>
+      </div>
+      <button class="props-close-btn" (click)="clearSelection()" title="Close">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 1l10 10M11 1L1 11"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="props-body">
+
+      <!-- ── START EVENT ──────────────────────────────────────────── -->
+      @if (elementType() === 'bpmn:StartEvent') {
+        <div class="props-info-block">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <circle cx="7" cy="7" r="5.5"/>
+          </svg>
+          <p>Entry point. Label must be a scanner name, e.g. <code>Scanner 1</code>.</p>
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">
+            Scanner Label <span class="props-required">*</span>
+          </label>
+          <div class="props-input-wrap" [class.error]="startLabelError()">
+            <input
+              class="props-input"
+              type="text"
+              placeholder="e.g. Scanner 1"
+              [value]="startLabel()"
+              (input)="onStartLabelChange($event)"
+            />
+          </div>
+          @if (startLabelError()) {
+            <span class="props-error-msg">{{ startLabelError() }}</span>
+          } @else {
+            <p class="props-hint">
+              <span class="hint-row hint-ok">✓ Accepted: <code>Scanner 1</code> &nbsp;<code>scanner1</code> &nbsp;<code>SCANNER 2</code></span>
+              <span class="hint-row hint-err">✗ Not accepted: <code>sc1</code> &nbsp;<code>s1</code> &nbsp;<code>scan1</code></span>
+            </p>
+          }
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">Element ID</label>
+          <span class="props-value-mono">{{ selectedElement()?.id }}</span>
+        </div>
+
+        <button class="btn btn-primary btn-sm props-save-btn" (click)="saveStartEvent()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <path d="M2 6l3 3 5-5"/>
+          </svg>
+          Save
+        </button>
+      }
+
+      <!-- ── SERVICE TASK ─────────────────────────────────────────── -->
+      @if (elementType() === 'bpmn:ServiceTask') {
+        <div class="props-field">
+          <label class="props-label">
+            Handler Name <span class="props-required">*</span>
+          </label>
+          <div class="props-input-wrap" [class.error]="taskHandlerError()">
+            <select
+              class="props-select"
+              [value]="taskHandler()"
+              (change)="onHandlerSelect($event)">
+              <option value="">— Select a handler —</option>
+              @for (opt of HANDLER_OPTIONS; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
+          @if (taskHandlerError()) {
+            <span class="props-error-msg">{{ taskHandlerError() }}</span>
+          }
+          <p class="props-hint">Must match a registered <code>ServiceTaskHandler</code> in the backend.</p>
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">
+            Display Label <span class="props-required">*</span>
+          </label>
+          <div class="props-input-wrap">
+            <input
+              class="props-input"
+              type="text"
+              placeholder="Auto-filled from handler"
+              [value]="taskDisplayLabel()"
+              (input)="onTaskDisplayLabelChange($event)"
+            />
+          </div>
+          <p class="props-hint">Auto-filled on handler select. Customise if needed.</p>
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">Element ID</label>
+          <span class="props-value-mono">{{ selectedElement()?.id }}</span>
+        </div>
+
+        <button
+          class="btn btn-primary btn-sm props-save-btn"
+          (click)="saveServiceTask()"
+          [disabled]="!taskHandler()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <path d="M2 6l3 3 5-5"/>
+          </svg>
+          Save
+        </button>
+      }
+
+      <!-- ── EXCLUSIVE GATEWAY ────────────────────────────────────── -->
+      @if (elementType() === 'bpmn:ExclusiveGateway') {
+        <div class="props-field">
+          <label class="props-label">
+            Gateway Name <span class="props-required">*</span>
+          </label>
+          <div class="props-input-wrap" [class.error]="gatewayNameError()">
+            <input
+              class="props-input"
+              type="text"
+              placeholder="e.g. Check Validation Result"
+              [value]="gatewayName()"
+              (input)="onGatewayNameChange($event)"
+            />
+          </div>
+          @if (gatewayNameError()) {
+            <span class="props-error-msg">{{ gatewayNameError() }}</span>
+          }
+        </div>
+
+        @if (gatewayFlows().length > 0) {
+          <div class="props-flows-section">
+            <label class="props-label">Outgoing Flows (max 2)</label>
+            @for (flow of gatewayFlows(); track flow.id) {
+              <div class="props-flow-item" [class.has-condition]="flow.hasCondition">
+                <div class="props-flow-header">
+                  <span class="flow-arrow-icon">→</span>
+                  <span class="flow-target-label">{{ flow.targetName }}</span>
+                  <span class="flow-status-badge" [class.ok]="flow.hasCondition">
+                    {{ flow.hasCondition ? '✓' : '!' }}
+                  </span>
+                </div>
+                @if (flow.condition) {
+                  <code class="flow-condition-preview">{{ flow.condition }}</code>
+                }
+              </div>
+            }
+            <p class="props-hint">Click an outgoing arrow to set its condition.</p>
+          </div>
+        } @else {
+          <div class="props-info-block">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M7 1l6 6-6 6-6-6 6-6z"/>
+            </svg>
+            <p>Draw up to <strong>2 outgoing flows</strong> from this gateway, then click each flow to set its condition.</p>
+          </div>
+        }
+
+        <div class="props-field">
+          <label class="props-label">Element ID</label>
+          <span class="props-value-mono">{{ selectedElement()?.id }}</span>
+        </div>
+
+        <!-- Too many flows -->
+        @if ((selectedElement()?.outgoing?.length ?? 0) > 2) {
+          <div class="props-info-block warning-block">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M7 1l6 12H1L7 1z"/>
+              <path d="M7 6v3M7 11h.01"/>
+            </svg>
+            <p>
+              <strong>{{ selectedElement()?.outgoing?.length }} outgoing flows detected.</strong>
+              Only 2 are allowed. Delete the extra flow(s) before saving.
+            </p>
+          </div>
+        }
+
+        <!-- Too few flows -->
+        @if ((selectedElement()?.outgoing?.length ?? 0) < 2) {
+          <div class="props-info-block warning-block">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M7 1l6 12H1L7 1z"/>
+              <path d="M7 6v3M7 11h.01"/>
+            </svg>
+            <p>
+              Exactly <strong>2 outgoing flows</strong> are required.
+              Currently has {{ selectedElement()?.outgoing?.length ?? 0 }}.
+              Draw both flows from this gateway first, then save.
+            </p>
+          </div>
+        }
+
+        <!-- Save — only enabled when exactly 2 outgoing flows exist -->
+        <button
+          class="btn btn-primary btn-sm props-save-btn"
+          (click)="saveGateway()"
+          [disabled]="(selectedElement()?.outgoing?.length ?? 0) !== 2">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <path d="M2 6l3 3 5-5"/>
+          </svg>
+          Save
+        </button>
+      }
+
+      <!-- ── SEQUENCE FLOW (from gateway) ────────────────────────── -->
+      @if (elementType() === 'bpmn:SequenceFlow' && isGatewayFlow()) {
+
+        <!-- Flow identity -->
+        <div class="props-flow-identity">
+          <span class="flow-identity-badge">Flow {{ flowIndex() }}</span>
+          <span class="flow-identity-route">
+            {{ gatewaySourceName() || '?' }} → {{ flowTargetName() || '?' }}
+          </span>
+        </div>
+
+        @if (conditionVariable()) {
+          <!-- Condition derived from connected handler -->
+          <div class="props-field">
+            <label class="props-label">Condition Variable</label>
+            <span class="props-value-mono">{{ conditionVariable() }}</span>
+            <p class="props-hint">Derived from the connected Service Task handler.</p>
+          </div>
+
+          <div class="props-field">
+            <label class="props-label">
+              Value <span class="props-required">*</span>
+            </label>
+            <div class="props-input-wrap" [class.error]="conditionError()">
+              <select
+                class="props-select"
+                [value]="conditionBoolValue()"
+                (change)="onConditionBoolChange($event)"
+                [disabled]="siblingConditionSet() && !!lockedBoolValue()">
+                <option value="">— Select value —</option>
+                @if (!siblingConditionSet() || lockedBoolValue() === 'false') {
+                  <option value="true">true</option>
+                }
+                @if (!siblingConditionSet() || lockedBoolValue() === 'true') {
+                  <option value="false">false</option>
+                }
+              </select>
+            </div>
+            @if (conditionError()) {
+              <span class="props-error-msg">{{ conditionError() }}</span>
+            }
+            @if (siblingConditionSet()) {
+              <p class="props-hint locked-hint">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+                     stroke="currentColor" stroke-width="1.5">
+                  <rect x="2" y="4" width="6" height="5" rx="1"/>
+                  <path d="M3.5 4V3a1.5 1.5 0 013 0v1"/>
+                </svg>
+                Sibling flow uses <code>{{ lockedBoolValue() }}</code> — this flow is locked to <code>{{ oppositeValue() }}</code>.
+              </p>
+            }
+          </div>
+
+          <!-- Live condition preview -->
+          @if (conditionPreview()) {
+            <div class="condition-preview-block">
+              <span class="condition-preview-label">Expression</span>
+              <code class="condition-preview-code">{{ conditionPreview() }}</code>
+            </div>
+          }
+
+        } @else {
+          <!-- No handler connected -->
+          <div class="props-info-block warning-block">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M7 1l6 12H1L7 1z"/>
+              <path d="M7 6v3M7 11h.01"/>
+            </svg>
+            <p>No incoming Service Task found on this gateway. Connect a <strong>Service Task</strong> to the gateway first — the condition variable is derived from the task that feeds into it.</p>
+          </div>
+        }
+
+        <!-- Flow label — auto-derived from condition value, read-only -->
+        @if (gatewayFlowAutoLabel()) {
+          <div class="props-field">
+            <label class="props-label">Flow Label</label>
+            <div class="auto-label-display" [class.success]="conditionBoolValue() === 'true'" [class.failure]="conditionBoolValue() === 'false'">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                @if (conditionBoolValue() === 'true') {
+                  <path d="M1.5 5.5l3 3 5-5"/>
+                } @else {
+                  <path d="M2 2l7 7M9 2L2 9"/>
+                }
+              </svg>
+              <span>{{ gatewayFlowAutoLabel() }}</span>
+              <span class="auto-tag">auto</span>
+            </div>
+            <p class="props-hint">Automatically set: <code>true</code> → Success, <code>false</code> → Failure.</p>
+          </div>
+        }
+
+        <div class="props-field">
+          <label class="props-label">From</label>
+          <span class="props-value-mono">{{ gatewaySourceName() || '—' }}</span>
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">To</label>
+          <span class="props-value-mono">{{ flowTargetName() || '—' }}</span>
+        </div>
+
+        <button
+          class="btn btn-primary btn-sm props-save-btn"
+          (click)="saveGatewayFlow()"
+          [disabled]="!conditionVariable()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <path d="M2 6l3 3 5-5"/>
+          </svg>
+          Save Condition
+        </button>
+      }
+
+      <!-- ── SEQUENCE FLOW (not from gateway) ────────────────────── -->
+      @if (elementType() === 'bpmn:SequenceFlow' && !isGatewayFlow()) {
+        <div class="props-info-block">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M2 7h10M8 3l4 4-4 4"/>
+          </svg>
+          <p>Direct connection — no condition needed.</p>
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">
+            Flow Label <span class="props-required">*</span>
+          </label>
+          <div class="props-input-wrap" [class.error]="plainFlowLabelError()">
+            <input
+              class="props-input"
+              type="text"
+              placeholder="e.g. Proceed to Validation"
+              [value]="plainFlowLabel()"
+              (input)="onPlainFlowLabelChange($event)"
+            />
+          </div>
+          @if (plainFlowLabelError()) {
+            <span class="props-error-msg">{{ plainFlowLabelError() }}</span>
+          } @else {
+            <p class="props-hint">
+              <span class="hint-row hint-ok">✓ Accepted: <code>Flow 1</code> &nbsp;<code>flow1</code> &nbsp;<code>FLOW 2</code></span>
+              <span class="hint-row hint-err">✗ Not accepted: <code>f1</code> &nbsp;<code>fl1</code></span>
+            </p>
+          }
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">From</label>
+          <span class="props-value-mono">{{ gatewaySourceName() || '—' }}</span>
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">To</label>
+          <span class="props-value-mono">{{ flowTargetName() || '—' }}</span>
+        </div>
+
+        @if (selectedElement()?.source?.type === 'bpmn:ServiceTask' &&
+             selectedElement()?.target?.type !== 'bpmn:ExclusiveGateway') {
+          <div class="props-info-block warning-block">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M7 1l6 12H1L7 1z"/>
+              <path d="M7 6v3M7 11h.01"/>
+            </svg>
+            <p>
+              A Service Task's outgoing flow must connect to an
+              <strong>Exclusive Gateway</strong>. Delete this flow and redraw it
+              to the correct target.
+            </p>
+          </div>
+        }
+
+        <!-- Save button — disabled when ServiceTask → non-gateway -->
+        <button
+          class="btn btn-primary btn-sm props-save-btn"
+          (click)="savePlainFlow()"
+          [disabled]="selectedElement()?.source?.type === 'bpmn:ServiceTask' &&
+                      selectedElement()?.target?.type !== 'bpmn:ExclusiveGateway'">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <path d="M2 6l3 3 5-5"/>
+          </svg>
+          Save
+        </button>
+      }
+
+      <!-- ── END EVENT ────────────────────────────────────────────── -->
+      @if (elementType() === 'bpmn:EndEvent') {
+        <div class="props-info-block">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="7" cy="7" r="5.5"/>
+          </svg>
+          <p>Marks workflow completion. Label must be a lane name, e.g. <code>Lane 1</code>.</p>
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">
+            Lane Label <span class="props-required">*</span>
+          </label>
+          <div class="props-input-wrap" [class.error]="endEventLabelError()">
+            <input
+              class="props-input"
+              type="text"
+              placeholder="e.g. Lane 1"
+              [value]="endEventLabel()"
+              (input)="onEndEventLabelChange($event)"
+            />
+          </div>
+          @if (endEventLabelError()) {
+            <span class="props-error-msg">{{ endEventLabelError() }}</span>
+          } @else {
+            <p class="props-hint">
+              <span class="hint-row hint-ok">✓ Accepted: <code>Lane 1</code> &nbsp;<code>lane1</code> &nbsp;<code>LANE 2</code></span>
+              <span class="hint-row hint-err">✗ Not accepted: <code>l1</code> &nbsp;<code>ln1</code> &nbsp;<code>la1</code></span>
+            </p>
+          }
+        </div>
+
+        <div class="props-field">
+          <label class="props-label">Element ID</label>
+          <span class="props-value-mono">{{ selectedElement()?.id }}</span>
+        </div>
+
+        <button class="btn btn-primary btn-sm props-save-btn" (click)="saveEndEvent()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <path d="M2 6l3 3 5-5"/>
+          </svg>
+          Save
+        </button>
+      }
+
+    </div>
+  }
+
+</div>
