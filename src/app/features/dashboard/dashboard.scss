@@ -1,74 +1,249 @@
-.welcome-section::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgb(148 163 184 / 0.2) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(148 163 184 / 0.2) 1px, transparent 1px);
-  background-size: 28px 28px;
-  pointer-events: none;
+@reference "../../../tailwind.css";
+
+.dashboard {
+  @apply mx-auto flex w-full max-w-full flex-col gap-8 px-6 py-8;
 }
 
-.welcome-section::after {
-  content: '';
-  position: absolute;
-  top: -80px;
-  right: -80px;
-  width: 280px;
-  height: 280px;
-  background: radial-gradient(circle, rgb(79 70 229 / 0.18) 0%, transparent 70%);
-  pointer-events: none;
+/* ── Welcome ─────────────────────────────────────────────────── */
+.welcome-section {
+  @apply relative flex flex-wrap items-center justify-between gap-5 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--surface-base)] px-8 py-7;
+
+  &::before {
+    content: '';
+    @apply pointer-events-none absolute inset-0;
+    background-image:
+      linear-gradient(var(--border-default) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border-default) 1px, transparent 1px);
+    background-size: 28px 28px;
+    opacity: 0.5;
+  }
+
+  &::after {
+    content: '';
+    @apply pointer-events-none absolute;
+    top: -80px;
+    right: -80px;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--accent-primary) 15%, transparent) 0%,
+      transparent 70%
+    );
+  }
 }
 
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  opacity: 0;
-  transition: opacity 200ms ease;
+.welcome-text {
+  @apply relative z-[1];
 }
 
-.stat-card:hover::before {
-  opacity: 1;
+.welcome-eyebrow {
+  @apply mb-2.5 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--accent-primary)] opacity-90;
+
+  span {
+    @apply inline-block h-px w-5 bg-[var(--accent-primary)] opacity-60;
+  }
 }
 
-.stat-card-active::before {
-  background: linear-gradient(90deg, #4f46e5, transparent);
+.text-display {
+  @apply text-[1.75rem] font-bold leading-[1.15] tracking-[-0.035em] text-[var(--text-primary)];
 }
 
-.stat-card-live::before {
-  background: linear-gradient(90deg, #059669, transparent);
+.welcome-sub {
+  @apply mt-2 text-[0.9375rem] leading-[1.5] text-[var(--text-secondary)];
 }
 
-.stat-card-scanner::before {
-  background: linear-gradient(90deg, #d97706, transparent);
+.welcome-actions {
+  @apply relative z-[1] flex shrink-0 flex-wrap gap-2.5;
 }
 
-.stat-card-version::before {
-  background: linear-gradient(90deg, #0284c7, transparent);
+/* ── Stats Grid ──────────────────────────────────────────────── */
+.stats-grid {
+  @apply grid grid-cols-4 gap-[14px] max-[1100px]:grid-cols-2 max-[560px]:grid-cols-1;
 }
 
-.quick-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgb(99 102 241 / 0.12) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity 200ms ease;
-  pointer-events: none;
+.stat-card {
+  @apply relative flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--surface-base)] px-6 py-[22px] transition duration-200;
+  transition-property: box-shadow, transform, border-color;
+
+  &::before {
+    content: '';
+    @apply absolute left-0 right-0 top-0 h-0.5 opacity-0 transition-opacity duration-200;
+    background: linear-gradient(90deg, var(--accent-primary), transparent);
+  }
+
+  &:hover {
+    @apply -translate-y-0.5 border-[var(--accent-primary)] shadow-[var(--shadow-md)];
+
+    &::before {
+      @apply opacity-100;
+    }
+  }
+
+  &.stat-active::before {
+    background: linear-gradient(90deg, #4f46e5, transparent);
+  }
+
+  &.stat-live::before {
+    background: linear-gradient(90deg, #059669, transparent);
+  }
+
+  &.stat-scanner::before {
+    background: linear-gradient(90deg, #d97706, transparent);
+  }
+
+  &.stat-version::before {
+    background: linear-gradient(90deg, #0284c7, transparent);
+  }
 }
 
-.quick-card:hover::after {
-  opacity: 1;
+.stat-header {
+  @apply mb-5 flex items-start justify-between;
 }
 
-.live-dot {
-  animation: blink 2s ease infinite;
+.stat-icon {
+  @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)];
 }
 
+.stat-badge {
+  @apply inline-flex items-center gap-1 rounded-[var(--radius-full)] px-[9px] py-[3px] text-[0.6875rem] font-semibold tracking-[0.03em];
+
+  &.badge-neutral {
+    @apply border border-[var(--border-default)] bg-[var(--surface-raised)] text-[var(--text-tertiary)];
+  }
+
+  &.badge-live {
+    @apply border border-[rgba(5,150,105,0.25)] bg-[rgba(5,150,105,0.12)] text-[#059669];
+
+    .live-dot {
+      @apply h-[5px] w-[5px] rounded-full bg-[#059669];
+      animation: blink 2s ease infinite;
+    }
+  }
+}
+
+.stat-value {
+  @apply mb-1.5 text-4xl font-extrabold leading-none tracking-[-0.05em] text-[var(--text-primary)];
+}
+
+.stat-label {
+  @apply text-[0.9rem] font-medium text-[var(--text-primary)] opacity-75;
+}
+
+.stat-trend {
+  @apply mt-3 flex items-center gap-1 border-t border-[var(--border-subtle)] pt-3 text-xs text-[var(--text-secondary)];
+}
+
+/* ── Section title ───────────────────────────────────────────── */
+.section-header {
+  @apply mb-[14px] flex items-center justify-between;
+}
+
+.section-title {
+  @apply text-base font-bold tracking-[-0.02em] text-[var(--text-primary)];
+}
+
+.section-link {
+  @apply flex items-center gap-1 text-[0.8125rem] font-medium text-[var(--accent-primary)] no-underline opacity-85 transition-opacity duration-150;
+
+  &:hover {
+    @apply opacity-100;
+  }
+}
+
+/* ── Quick Grid ──────────────────────────────────────────────── */
+.quick-grid {
+  @apply grid grid-cols-2 gap-3 max-[900px]:grid-cols-1;
+}
+
+.quick-card {
+  @apply relative flex items-center gap-4 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--surface-base)] px-6 py-[22px] no-underline transition duration-200;
+
+  &::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200;
+    background: linear-gradient(135deg, var(--accent-subtle) 0%, transparent 60%);
+  }
+
+  &:hover {
+    @apply -translate-y-0.5 border-[var(--accent-primary)] shadow-[var(--shadow-md)];
+
+    &::after {
+      @apply opacity-100;
+    }
+
+    .quick-arrow {
+      @apply translate-x-[3px] text-[var(--accent-primary)];
+    }
+
+    .quick-icon {
+      @apply bg-[var(--accent-primary)] text-white;
+    }
+  }
+}
+
+.quick-icon {
+  @apply relative z-[1] flex h-[52px] w-[52px] min-w-[52px] shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--accent-primary)_20%,transparent)] bg-[var(--accent-subtle)] text-[var(--accent-primary)] transition duration-200;
+
+  svg {
+    @apply block;
+    stroke: currentColor;
+  }
+}
+
+.quick-info {
+  @apply relative z-[1] flex flex-1 flex-col gap-[5px];
+}
+
+.quick-label {
+  @apply text-[1.0625rem] font-semibold leading-[1.2] text-[var(--text-primary)];
+}
+
+.quick-desc {
+  @apply text-[0.9rem] leading-[1.45] text-[var(--text-secondary)];
+}
+
+.quick-arrow {
+  @apply relative z-[1] shrink-0 text-[var(--text-secondary)] transition duration-200;
+  transition-property: transform, color;
+}
+
+/* ── Activity / Status row ───────────────────────────────────── */
+.status-row {
+  @apply flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--surface-base)] px-5 py-4;
+}
+
+.status-item {
+  @apply flex items-center gap-2.5;
+}
+
+.status-dot {
+  @apply h-2 w-2 shrink-0 rounded-full;
+
+  &.dot-ok {
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  }
+
+  &.dot-warn {
+    background: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  }
+
+  &.dot-neutral {
+    @apply bg-[var(--text-tertiary)];
+  }
+}
+
+.status-text {
+  @apply text-[0.8125rem] font-medium text-[var(--text-secondary)];
+}
+
+.status-divider {
+  @apply h-[18px] w-px bg-[var(--border-default)];
+}
+
+/* ── Keyframes ───────────────────────────────────────────────── */
 @keyframes blink {
   0%,
   100% {
