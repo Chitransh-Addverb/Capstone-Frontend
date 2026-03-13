@@ -259,79 +259,90 @@
                   </button>
 
                   <!-- 3-dot menu -->
-                  <div class="menu-wrap">
-                    <button class="action-icon-btn btn-dots"
-                            [class.btn-dots--open]="isMenuOpen(def.workflow_key, def.version)"
-                            (click)="toggleMenu(def.workflow_key, def.version, $event)"
-                            title="More options"
-                            [attr.aria-expanded]="isMenuOpen(def.workflow_key, def.version)">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <circle cx="8" cy="3.5" r="1.1" fill="currentColor"/>
-                        <circle cx="8" cy="8"   r="1.1" fill="currentColor"/>
-                        <circle cx="8" cy="12.5" r="1.1" fill="currentColor"/>
-                      </svg>
-                    </button>
+                  <!-- ── ONLY THIS SECTION CHANGES in your HTML ──────────────────────
+     Find the existing <div class="menu-wrap"> block and replace it
+     with the version below. Everything else in the template stays
+     exactly the same.
+     ──────────────────────────────────────────────────────────────── -->
 
-                    @if (isMenuOpen(def.workflow_key, def.version)) {
-                      <div class="dropdown-menu" (click)="$event.stopPropagation()">
+<!-- 3-dot menu -->
+<div class="menu-wrap">
+  <button
+    class="action-icon-btn btn-dots"
+    [class.btn-dots--open]="isMenuOpen(def.workflow_key, def.version)"
+    (click)="toggleMenu(def.workflow_key, def.version, $event)"
+    title="More options"
+    [attr.aria-expanded]="isMenuOpen(def.workflow_key, def.version)"
+  >
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="3.5"  r="1.1" fill="currentColor"/>
+      <circle cx="8" cy="8"    r="1.1" fill="currentColor"/>
+      <circle cx="8" cy="12.5" r="1.1" fill="currentColor"/>
+    </svg>
+  </button>
 
-                        <button class="dropdown-item"
-                                (click)="editWorkflow(def, $event)">
-                          <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
-                               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                            <path d="M9 1.5l2.5 2.5-7 7H2v-2.5l7-7z"/>
-                          </svg>
-                          Edit in Designer
-                        </button>
+  @if (isMenuOpen(def.workflow_key, def.version)) {
+    <!-- CHANGED: position:fixed via [style.top] and [style.left] bound to menuTop/menuLeft -->
+    <div
+      class="dropdown-menu"
+      [style.top.px]="menuTop"
+      [style.left.px]="menuLeft"
+      (click)="$event.stopPropagation()"
+    >
+      <button class="dropdown-item" (click)="editWorkflow(def, $event)">
+        <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M9 1.5l2.5 2.5-7 7H2v-2.5l7-7z"/>
+        </svg>
+        Edit in Designer
+      </button>
 
-                        <div class="dropdown-divider"></div>
+      <div class="dropdown-divider"></div>
 
-                        @if (def.status !== 'active') {
-                          <button class="dropdown-item item-activate"
-                                  (click)="activate(def, $event)"
-                                  [disabled]="isToggling(def.workflow_key, def.version)">
-                            @if (isToggling(def.workflow_key, def.version)) {
-                              <span class="wf-spinner"></span> Activating…
-                            } @else {
-                              <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
-                                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                                <path d="M10.5 6.5l-7-4v8l7-4z"/>
-                              </svg>
-                              Activate
-                            }
-                          </button>
-                        } @else {
-                          <button class="dropdown-item item-deactivate"
-                                  (click)="deactivate(def, $event)"
-                                  [disabled]="isToggling(def.workflow_key, def.version)">
-                            @if (isToggling(def.workflow_key, def.version)) {
-                              <span class="wf-spinner"></span> Pausing…
-                            } @else {
-                              <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
-                                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                                <rect x="2.5" y="2.5" width="2.5" height="8" rx="0.5"/>
-                                <rect x="8"   y="2.5" width="2.5" height="8" rx="0.5"/>
-                              </svg>
-                              Deactivate
-                            }
-                          </button>
-                        }
+      @if (def.status !== 'active') {
+        <button class="dropdown-item item-activate"
+                (click)="activate(def, $event)"
+                [disabled]="isToggling(def.workflow_key, def.version)">
+          @if (isToggling(def.workflow_key, def.version)) {
+            <span class="wf-spinner"></span> Activating…
+          } @else {
+            <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M10.5 6.5l-7-4v8l7-4z"/>
+            </svg>
+            Activate
+          }
+        </button>
+      } @else {
+        <button class="dropdown-item item-deactivate"
+                (click)="deactivate(def, $event)"
+                [disabled]="isToggling(def.workflow_key, def.version)">
+          @if (isToggling(def.workflow_key, def.version)) {
+            <span class="wf-spinner"></span> Pausing…
+          } @else {
+            <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <rect x="2.5" y="2.5" width="2.5" height="8" rx="0.5"/>
+              <rect x="8"   y="2.5" width="2.5" height="8" rx="0.5"/>
+            </svg>
+            Deactivate
+          }
+        </button>
+      }
 
-                        <div class="dropdown-divider"></div>
+      <div class="dropdown-divider"></div>
 
-                        <button class="dropdown-item item-delete"
-                                (click)="confirmDelete(def, $event)">
-                          <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
-                               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                            <path d="M1.5 3.5h10M4.5 3.5V2.5h4v1M5.5 6.5v3M7.5 6.5v3
-                                     M2.5 3.5l.75 7.5a1 1 0 001 .9h5.5a1 1 0 001-.9l.75-7.5"/>
-                          </svg>
-                          Delete
-                        </button>
-
-                      </div>
-                    }
-                  </div>
+      <button class="dropdown-item item-delete" (click)="confirmDelete(def, $event)">
+        <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1.5 3.5h10M4.5 3.5V2.5h4v1M5.5 6.5v3M7.5 6.5v3
+                   M2.5 3.5l.75 7.5a1 1 0 001 .9h5.5a1 1 0 001-.9l.75-7.5"/>
+        </svg>
+        Delete
+      </button>
+    </div>
+  }
+</div>
 
                 </div>
               </div>
