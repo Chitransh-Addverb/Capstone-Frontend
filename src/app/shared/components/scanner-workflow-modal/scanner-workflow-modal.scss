@@ -312,7 +312,37 @@
   to { transform: rotate(360deg); }
 }
 
+:host ::ng-deep {
 
+  /* Always white canvas — never inherits dark-mode bg */
+  .bjs-container,
+  .djs-container {
+    background: #ffffff !important;
+  }
+
+  /* Hide the "Process_1" process label that bpmn-js renders
+     as a .djs-label on the root process shape */
+  .djs-shape[data-element-id="Process_1"] .djs-label,
+  .djs-shape[data-element-id^="Process_"] .djs-label {
+    display: none !important;
+  }
+
+  /* Hide the BPMN.io watermark in the bottom-right corner */
+  .bjs-powered-by {
+    display: none !important;
+  }
+
+  /* Keep palette and context pad readable (light) */
+  .djs-palette {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .djs-context-pad .entry {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+  }
+}
 
 
 

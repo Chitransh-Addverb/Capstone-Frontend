@@ -1,175 +1,114 @@
-<div class="mx-auto flex w-full max-w-full flex-col gap-8 px-6 py-8">
-  <div
-    class="welcome-section relative flex flex-wrap items-center justify-between gap-5 overflow-hidden rounded-2xl border border-slate-200 bg-white px-8 py-7 dark:border-slate-700 dark:bg-slate-900"
-  >
-    <div class="relative z-10">
-      <div
-        class="mb-2.5 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-indigo-600 dark:text-indigo-300"
-      >
-        <span class="inline-block h-px w-5 bg-indigo-600/70 dark:bg-indigo-300/70"></span>
+<div class="dashboard">
+
+  <!-- ── Welcome Banner ── -->
+  <div class="welcome-section">
+    <div class="welcome-text">
+      <div class="welcome-eyebrow">
+        <span></span>
         Warehouse Operations Suite
       </div>
-      <h1 class="text-3xl font-bold leading-tight tracking-tight text-slate-900 dark:text-slate-50">
-        Workflow Orchestration
-      </h1>
-      <p class="mt-2 text-[15px] leading-6 text-slate-700 dark:text-slate-300">
-        Monitor, manage and deploy BPMN workflows across your warehouses.
-      </p>
+      <h1 class="text-display">Workflow Orchestration</h1>
+      <p class="welcome-sub">Monitor, manage and deploy BPMN workflows across your warehouses.</p>
     </div>
-
-    <div class="relative z-10 flex shrink-0 flex-wrap gap-2.5">
-      <a
-        routerLink="/designer"
-        class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 14 14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        >
-          <path d="M7 1v12M1 7h12" />
+    <div class="welcome-actions">
+      <a routerLink="/designer" class="btn btn-primary">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M7 1v12M1 7h12"/>
         </svg>
         New Workflow
       </a>
-      <a
-        routerLink="/definitions"
-        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-indigo-500 hover:text-indigo-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:border-indigo-400 dark:hover:text-indigo-300"
-      >
-        View All
-      </a>
+      <a routerLink="/definitions" class="btn btn-ghost">View All</a>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-4">
+  <!-- ── Stats Grid — dynamic: one tile per tileDef entry ── -->
+  <div class="stats-grid">
+
     @for (tile of tileDefs; track tile.key) {
-      <div [class]="tileCardClass(tile.accent)">
-        <div class="mb-5 flex items-start justify-between">
-          <span
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-            [style.background]="tile.iconBg"
-            [style.color]="tile.iconColor"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 18 18"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              [innerHTML]="safe(tile.svgPath)"
-            ></svg>
+      <div class="stat-card" [ngClass]="tile.accent">
+
+        <div class="stat-header">
+          <!-- Icon -->
+          <span class="stat-icon"
+                [style.background]="tile.iconBg"
+                [style.color]="tile.iconColor">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                 [innerHTML]="safe(tile.svgPath)">
+            </svg>
           </span>
 
-          <span [class]="badgeClass(tile.badge)">
+          <!-- Badge -->
+          <span class="stat-badge" [ngClass]="tile.badge">
             @if (tile.badgeLive) {
-              <span
-                class="live-dot h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"
-              ></span>
+              <span class="live-dot"></span>
             }
             {{ tile.badgeLabel }}
           </span>
         </div>
 
-        <div
-          class="mb-1.5 text-4xl font-extrabold leading-none tracking-tight text-slate-900 dark:text-slate-50"
-        >
-          {{ tileValue(tile.key) }}
-        </div>
-        <div class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ tile.label }}</div>
+        <!-- Value -->
+        <div class="stat-value">{{ tileValue(tile.key) }}</div>
+        <div class="stat-label">{{ tile.label }}</div>
 
-        <div
-          class="mt-3 flex items-center gap-1 border-t border-slate-200 pt-3 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            [innerHTML]="safe(tile.trendIcon)"
-          ></svg>
+        <!-- Trend -->
+        <div class="stat-trend">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+               stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+               [innerHTML]="safe(tile.trendIcon)">
+          </svg>
           {{ tile.trend }}
         </div>
+
       </div>
     }
+
   </div>
 
-  <div>
-    <div class="mb-3.5 flex items-center justify-between gap-3">
-      <h2 class="text-base font-bold tracking-tight text-slate-900 dark:text-slate-50">
-        Quick Access
-      </h2>
-      <a
-        routerLink="/definitions"
-        class="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 transition hover:text-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:text-indigo-300 dark:hover:text-indigo-200"
-      >
+  <!-- ── Quick Access ── -->
+  <div class="quick-section">
+    <div class="section-header">
+      <h2 class="section-title">Quick Access</h2>
+      <a routerLink="/definitions" class="section-link">
         All workflows
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 14 14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.75"
-          stroke-linecap="round"
-        >
-          <path d="M2 7h10M8 3l4 4-4 4" />
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+          <path d="M2 7h10M8 3l4 4-4 4"/>
         </svg>
       </a>
     </div>
 
-    <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+    <div class="quick-grid">
       @for (action of quickActions; track action.route) {
-        <a
-          [routerLink]="action.route"
-          class="quick-card group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white px-6 py-5 no-underline transition duration-200 hover:-translate-y-0.5 hover:border-indigo-500 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-400"
-        >
-          <span
-            class="quick-icon relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-indigo-600/20 bg-indigo-100 text-indigo-600 transition group-hover:bg-indigo-600 group-hover:text-white dark:border-indigo-400/30 dark:bg-indigo-500/15 dark:text-indigo-300 dark:group-hover:bg-indigo-500 dark:group-hover:text-white"
-          >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 18 18"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              [innerHTML]="safe(action.svgBody)"
-            ></svg>
+        <a [routerLink]="action.route" class="quick-card">
+
+          <!-- Icon — rendered via a wrapper so SVG paths show correctly -->
+          <span class="quick-icon">
+            <svg width="22" height="22" viewBox="0 0 18 18" fill="none"
+                 stroke="currentColor" stroke-width="1.5"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 [innerHTML]="safe(action.svgBody)">
+            </svg>
           </span>
 
-          <div class="relative z-10 flex flex-1 flex-col gap-1">
-            <span class="text-base font-semibold text-slate-900 dark:text-slate-100">{{
-              action.label
-            }}</span>
-            <span class="text-sm leading-6 text-slate-700 dark:text-slate-300">{{
-              action.desc
-            }}</span>
+          <div class="quick-info">
+            <span class="quick-label">{{ action.label }}</span>
+            <span class="quick-desc">{{ action.desc }}</span>
           </div>
 
-          <svg
-            class="quick-arrow relative z-10 shrink-0 text-slate-600 transition duration-200 group-hover:translate-x-1 group-hover:text-indigo-600 dark:text-slate-300 dark:group-hover:text-indigo-300"
-            width="15"
-            height="15"
-            viewBox="0 0 14 14"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.75"
-            stroke-linecap="round"
-          >
-            <path d="M2 7h10M8 3l4 4-4 4" />
+          <svg class="quick-arrow" width="15" height="15" viewBox="0 0 14 14"
+               fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+            <path d="M2 7h10M8 3l4 4-4 4"/>
           </svg>
+
         </a>
       }
     </div>
   </div>
+
 </div>
+
+
+
+

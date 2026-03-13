@@ -55,6 +55,10 @@ export class WorkflowDefinitionsComponent implements OnInit {
   /* ── 3-dot dropdown ─────────────────────────────────────── */
   openMenuKey  = signal<string | null>(null);
 
+  // ── ADDED: fixed-position coordinates for the dropdown ───
+  menuTop  = 0;
+  menuLeft = 0;
+
   /* ── Modals ─────────────────────────────────────────────── */
   showDetailModal      = signal(false);
   selectedDefinition   = signal<WorkflowDefinition | null>(null);
@@ -67,12 +71,10 @@ export class WorkflowDefinitionsComponent implements OnInit {
     this.service.latestVersions().filter(d => d.status === 'active').length);
   totalVersions  = computed(() => this.service.definitions().length);
 
-  /** All unique workflow keys (lowercased) — used for duplicate-key guard in deploy modal */
   existingWorkflowKeys = computed(() =>
     new Set(this.service.latestVersions().map(d => d.workflow_key.toLowerCase()))
   );
 
-  /** Filtered + sorted rows (searches across ALL data, not just current page) */
   filteredRows = computed((): WorkflowDefinition[] => {
     const q      = this.searchQuery().trim().toLowerCase();
     const status = this.statusFilter();
@@ -99,13 +101,11 @@ export class WorkflowDefinitionsComponent implements OnInit {
     return pool;
   });
 
-  /** Legacy: kept for isSearchMode usage in template */
   displayRows = computed((): { rows: WorkflowDefinition[]; isSearchMode: boolean } => ({
     rows: this.pagedRows(),
     isSearchMode: !!this.searchQuery().trim(),
   }));
 
-  /** Rows for the currently visible page */
   pagedRows = computed((): WorkflowDefinition[] => {
     const start = (this.currentPage() - 1) * PAGE_SIZE;
     return this.filteredRows().slice(start, start + PAGE_SIZE);
@@ -143,7 +143,6 @@ export class WorkflowDefinitionsComponent implements OnInit {
   /* ── Pagination ─────────────────────────────────────────── */
   onPageChange(page: number): void {
     this.currentPage.set(page);
-    // Collapse any open version panel when changing pages
     this.expandedKey.set(null);
   }
 
@@ -174,8 +173,8 @@ export class WorkflowDefinitionsComponent implements OnInit {
   /* ── Search / filter ─────────────────────────────────────── */
   setSearch(value: string): void {
     this.searchQuery.set(value);
-    this.currentPage.set(1);    // always reset to page 1 on new search
-    this.expandedKey.set(null); // collapse any open history panel
+    this.currentPage.set(1);
+    this.expandedKey.set(null);
   }
 
   setStatus(s: StatusFilter): void {
@@ -198,10 +197,36 @@ export class WorkflowDefinitionsComponent implements OnInit {
   /* ── 3-dot menu ─────────────────────────────────────────── */
   menuKey(key: string, version: number): string { return `${key}@${version}`; }
 
-  toggleMenu(key: string, version: number, event: Event): void {
+  // ── CHANGED: was a simple toggle; now also computes fixed position ──
+  toggleMenu(key: string, version: number, event: MouseEvent): void {
     event.stopPropagation();
-    const k = this.menuKey(key, version);
-    this.openMenuKey.update(v => (v === k ? null : k));
+
+    const k           = this.menuKey(key, version);
+    const alreadyOpen = this.openMenuKey() === k;
+
+    // Always close first
+    this.openMenuKey.set(null);
+
+    if (alreadyOpen) return; // clicked same button → just close
+
+    // Compute fixed-position coordinates from the trigger button's rect
+    const btn  = event.currentTarget as HTMLElement;
+    const rect = btn.getBoundingClientRect();
+
+    const MENU_WIDTH  = 180;  // must match min-width in SCSS
+    const MENU_HEIGHT = 160;  // approximate menu height
+
+    // Open below by default; flip above if not enough room below
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openAbove  = spaceBelow < MENU_HEIGHT && rect.top > MENU_HEIGHT;
+
+    this.menuTop  = openAbove ? rect.top - MENU_HEIGHT - 4 : rect.bottom + 4;
+    this.menuLeft = rect.right - MENU_WIDTH;
+
+    // Clamp: never let it overflow off the left edge
+    if (this.menuLeft < 8) this.menuLeft = 8;
+
+    this.openMenuKey.set(k);
   }
 
   closeMenu(): void { this.openMenuKey.set(null); }
@@ -306,7 +331,6 @@ export class WorkflowDefinitionsComponent implements OnInit {
         this.toast.success('Deleted', `${target.key} v${target.version} removed.`);
         this.confirmDeleteTarget.set(null);
         this.deletingKey.set(null);
-        // If page is now empty and we're past page 1, step back
         if (this.pagedRows().length === 0 && this.currentPage() > 1) {
           this.currentPage.update(p => p - 1);
         }
@@ -336,4 +360,5 @@ export class WorkflowDefinitionsComponent implements OnInit {
     return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
   }
 }
+
 
