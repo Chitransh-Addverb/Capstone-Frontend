@@ -342,9 +342,11 @@
   &.hf-reset {
     margin-left: auto;
     color: var(--text-tertiary);
-    border-color: var(--border-subtle);
+    // border-color: var(--border-subtle);
+    border: none;
     background: transparent;
-    &:hover { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+    font-size: xx-small;
+    &:hover { color: #000; border-color: rgba(239,68,68,0.3); }
   }
 }
 
