@@ -1,92 +1,53 @@
+@reference "../../../tailwind.css";
+
 /* ── Updated workflow-designer.scss ──────────────────────────────────
-   Only addition vs original: .canvas-with-panel flex container
-   so canvas + properties panel sit side by side.
-   All existing rules preserved exactly.
+   Tailwind @apply migration while preserving existing UI.
    ──────────────────────────────────────────────────────────────────── */
 
 .designer-shell {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - var(--topbar-height) - 56px);
-  background: var(--surface-base);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
+  @apply flex h-[calc(100vh-var(--topbar-height)-56px)] flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-base)] shadow-[var(--shadow-md)];
 }
 
 /* Header */
 .designer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--surface-raised);
-  flex-shrink: 0;
+  @apply flex shrink-0 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--surface-raised)] px-5 py-[14px];
 }
 
 .header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  @apply flex items-center gap-3;
 }
 
 .header-icon {
-  width: 36px;
-  height: 36px;
-  background: var(--accent-subtle);
-  color: var(--accent-primary);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-subtle)] text-[var(--accent-primary)];
 }
 
 .header-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
+  @apply text-[0.9375rem] font-semibold tracking-[-0.02em] text-[var(--text-primary)];
 }
 
 .header-subtitle {
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-  margin-top: 1px;
+  @apply mt-px text-[0.7rem] text-[var(--text-tertiary)];
 }
 
 .header-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  @apply flex items-center gap-1.5;
 }
 
-/* ── Canvas + Panel row (NEW) ──────────────────────────────────────── */
+/* ── Canvas + Panel row ──────────────────────────────────────── */
 .canvas-with-panel {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
+  @apply flex flex-1 overflow-hidden;
   min-height: 0;
 }
 
 /* Canvas */
-/* Canvas */
 .canvas-container {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background: var(--surface-ground);
+  @apply relative flex-1 overflow-hidden bg-[var(--surface-ground)];
   background-image: radial-gradient(circle, var(--border-default) 1px, transparent 1px);
   background-size: 24px 24px;
   min-width: 0;
 }
 
-/* ── Force BPMN canvas to remain light in dark mode ─────────────────
-   bpmn-js renders SVG with hard-coded dark strokes/fills that become
-   invisible on dark backgrounds. Lock the canvas to a light scheme.
-   ───────────────────────────────────────────────────────────────────── */
+/* ── Force BPMN canvas to remain light in dark mode ───────────────── */
 @media (prefers-color-scheme: dark) {
   .canvas-container {
     background: #f5f5f4 !important;
@@ -95,109 +56,68 @@
   }
 }
 
-/* Class-based dark mode (data-theme="dark", .dark, etc.) */
-:root[data-theme="dark"] .canvas-container,
+:root[data-theme='dark'] .canvas-container,
 :root.dark .canvas-container,
-body[data-theme="dark"] .canvas-container,
+body[data-theme='dark'] .canvas-container,
 body.dark .canvas-container,
 .dark .canvas-container,
-[data-theme="dark"] .canvas-container {
+[data-theme='dark'] .canvas-container {
   background: #f5f5f4 !important;
   background-image: radial-gradient(circle, #c9c9c0 1px, transparent 1px) !important;
   background-size: 24px 24px !important;
 }
 
 .canvas-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: var(--text-tertiary);
-  font-size: 0.8125rem;
-  z-index: 10;
-  background: var(--surface-ground);
+  @apply absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[var(--surface-ground)] text-[0.8125rem] text-[var(--text-tertiary)];
 }
 
 .loading-spinner {
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--accent-primary);
-  border-radius: 50%;
+  @apply h-7 w-7 rounded-full border-2 border-[var(--border-default)] border-t-[var(--accent-primary)];
   animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .bpmn-canvas {
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  transition: opacity var(--transition-base);
+  @apply h-full w-full opacity-0 transition-opacity duration-[var(--transition-base)];
 
   &.visible {
-    opacity: 1;
+    @apply opacity-100;
   }
 }
 
 .canvas-watermark {
-  position: absolute;
-  bottom: 12px;
-  right: 16px;
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  opacity: 0.4;
-  font-family: var(--font-mono);
-  pointer-events: none;
+  @apply pointer-events-none absolute bottom-3 right-4 font-[var(--font-mono)] text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)] opacity-40;
 }
 
 /* Status bar */
 .status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 16px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--surface-raised);
-  flex-shrink: 0;
+  @apply flex shrink-0 items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--surface-raised)] px-4 py-1.5;
 }
 
 .status-left,
 .status-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  @apply flex items-center gap-2;
 }
 
 .status-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.6875rem;
-  color: var(--text-tertiary);
+  @apply flex items-center gap-[5px] text-[0.6875rem] text-[var(--text-tertiary)];
 }
 
 .status-indicator {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
+  @apply h-[5px] w-[5px] rounded-full;
 
   &.online {
-    background: var(--status-success);
+    @apply bg-[var(--status-success)];
   }
 }
 
 .status-divider {
-  color: var(--border-strong);
-  font-size: 0.75rem;
+  @apply text-[0.75rem] text-[var(--border-strong)];
 }
 
 /* bpmn-js overrides */
@@ -211,10 +131,10 @@ body.dark .canvas-container,
     border: 1px solid var(--border-default) !important;
     border-radius: var(--radius-lg) !important;
     box-shadow: var(--shadow-md) !important;
+    padding: 8px 6px !important;
     left: 16px !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
-    padding: 8px 6px !important;
   }
 
   .djs-palette .entry {
@@ -245,56 +165,28 @@ body.dark .canvas-container,
 }
 
 .header-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @apply flex items-center gap-2.5;
 }
 
 .edit-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  background: var(--status-warning-bg);
-  color: var(--status-warning);
-  border-radius: var(--radius-full);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  font-family: var(--font-mono);
+  @apply inline-flex items-center gap-[5px] rounded-[var(--radius-full)] bg-[var(--status-warning-bg)] px-2 py-0.5 font-[var(--font-mono)] text-[0.6875rem] font-medium text-[var(--status-warning)];
 }
 
 .edit-mode-indicator {
-  color: var(--status-warning);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  @apply font-[var(--font-mono)] text-[0.6875rem] text-[var(--status-warning)];
 }
 
 :host ::ng-deep {
   .djs-palette .entry {
-    position: relative;
+    @apply relative;
 
     &::after {
       content: attr(title);
-      position: absolute;
-      left: calc(100% + 10px);
-      top: 50%;
-      transform: translateY(-50%);
-      background: var(--surface-overlay, #1a1a2e);
-      color: var(--text-primary);
-      font-size: 0.6875rem;
-      font-weight: 500;
-      white-space: nowrap;
-      padding: 4px 8px;
-      border-radius: 4px;
-      border: 1px solid var(--border-default);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.15s ease;
-      z-index: 100;
+      @apply pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[100] -translate-y-1/2 whitespace-nowrap rounded border border-[var(--border-default)] bg-[var(--surface-overlay,#1a1a2e)] px-2 py-1 text-[0.6875rem] font-medium text-[var(--text-primary)] opacity-0 transition-opacity duration-150;
     }
 
     &:hover::after {
-      opacity: 1;
+      @apply opacity-100;
     }
   }
 
@@ -304,110 +196,67 @@ body.dark .canvas-container,
   }
 }
 
-/* ── Disable "Change element" wrench from context pad ────────────────
-   The wrench icon (bpmn-icon-screw-wrench) opens the morph/replace popup.
-   Our provider already removes it, but as a CSS safety net we also hide it.
-   ───────────────────────────────────────────────────────────────────── */
+/* ── Disable "Change element" wrench from context pad ──────────────── */
 :host ::ng-deep {
   .djs-context-pad .entry.bpmn-icon-screw-wrench,
-  .djs-context-pad [data-action="replace"],
-  .djs-context-pad .entry[title*="Change"],
-  .djs-context-pad .entry[title*="change"],
-  .djs-context-pad .entry[title*="Replace"],
-  .djs-context-pad .entry[title*="replace"] {
+  .djs-context-pad [data-action='replace'],
+  .djs-context-pad .entry[title*='Change'],
+  .djs-context-pad .entry[title*='change'],
+  .djs-context-pad .entry[title*='Replace'],
+  .djs-context-pad .entry[title*='replace'] {
     display: none !important;
     pointer-events: none !important;
   }
 }
 
-
-
 /* ── Unsaved-changes badge (header) ──────────────────────────────── */
 .unsaved-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  background: rgba(234, 179, 8, 0.12);
-  color: var(--status-warning, #ca8a04);
-  border: 1px solid rgba(234, 179, 8, 0.3);
-  border-radius: var(--radius-full);
-  font-size: 0.6875rem;
-  font-weight: 500;
+  @apply inline-flex items-center gap-[5px] rounded-[var(--radius-full)] border border-[rgba(234,179,8,0.3)] bg-[rgba(234,179,8,0.12)] px-2 py-0.5 text-[0.6875rem] font-medium text-[var(--status-warning,#ca8a04)];
 }
 
 .unsaved-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
+  @apply h-[5px] w-[5px] shrink-0 rounded-full bg-current;
   animation: unsavedPulse 1.6s ease-in-out infinite;
-  flex-shrink: 0;
 }
 
 @keyframes unsavedPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 /* ── Unsaved status in status bar ────────────────────────────────── */
 .unsaved-status {
-  color: var(--status-warning, #ca8a04);
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  @apply flex items-center gap-1 text-[var(--status-warning,#ca8a04)];
 }
 
 .unsaved-status-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--status-warning, #ca8a04);
+  @apply h-[5px] w-[5px] shrink-0 rounded-full bg-[var(--status-warning,#ca8a04)];
   animation: unsavedPulse 1.6s ease-in-out infinite;
-  flex-shrink: 0;
 }
 
-/* ── Shared modal backdrop (for reset + leave modals) ────────────── */
+/* ── Shared modal backdrop ────────────── */
 .designer-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  @apply fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-5;
   backdrop-filter: blur(4px);
-  z-index: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
   animation: dcmFadeIn 160ms ease;
 }
 
 /* ── Confirm modal card ──────────────────────────────────────────── */
 .designer-confirm-modal {
-  background: var(--surface-base);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
-  width: 400px;
-  max-width: 100%;
-  padding: 32px 28px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @apply flex w-[400px] max-w-full flex-col items-center rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--surface-base)] px-7 pb-6 pt-8 text-center;
   gap: 0;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   animation: dcmSlideIn 200ms cubic-bezier(0.34, 1.3, 0.64, 1) both;
-  text-align: center;
 }
 
 /* Icon circle */
 .dcm-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-  flex-shrink: 0;
+  @apply mb-4 flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full;
 
   &.dcm-icon--warning {
     background: rgba(234, 179, 8, 0.12);
@@ -416,53 +265,31 @@ body.dark .canvas-container,
   }
 
   &.dcm-icon--danger {
-    background: var(--status-error-bg, rgba(220,38,38,0.08));
+    background: var(--status-error-bg, rgba(220, 38, 38, 0.08));
     color: var(--status-error, #dc2626);
     border: 1.5px solid rgba(220, 38, 38, 0.25);
   }
 }
 
 .dcm-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 10px;
-  letter-spacing: -0.02em;
+  @apply m-0 mb-2.5 text-base font-bold tracking-[-0.02em] text-[var(--text-primary)];
 }
 
 .dcm-desc {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0 0 24px;
+  @apply m-0 mb-6 text-[0.8125rem] leading-[1.6] text-[var(--text-secondary)];
 
-  strong { color: var(--text-primary); font-weight: 600; }
+  strong {
+    @apply font-semibold text-[var(--text-primary)];
+  }
 }
 
 .dcm-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
+  @apply flex w-full items-center justify-center gap-2.5;
 }
 
 /* Warning button (for reset — less severe than danger) */
 .btn-warning {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(234, 179, 8, 0.5);
-  background: rgba(234, 179, 8, 0.12);
-  color: var(--status-warning, #ca8a04);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  transition: all 150ms;
+  @apply inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[var(--radius-md)] border border-[rgba(234,179,8,0.5)] bg-[rgba(234,179,8,0.12)] px-4 font-[var(--font-sans)] text-sm font-medium text-[var(--status-warning,#ca8a04)] transition-all duration-150;
 
   &:hover {
     background: rgba(234, 179, 8, 0.2);
@@ -472,13 +299,23 @@ body.dark .canvas-container,
 
 /* ── Animations ──────────────────────────────────────────────────── */
 @keyframes dcmFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes dcmSlideIn {
-  from { opacity: 0; transform: scale(0.94) translateY(6px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* ── Force bpmn-js palette + context pad to stay light in dark mode ── */
@@ -502,7 +339,6 @@ body.dark .canvas-container,
       border-color: #d1d1c8 !important;
     }
 
-    /* Context pad (right-click / element actions popup) */
     .djs-context-pad .entry {
       background: #ffffff !important;
       border-color: #d1d1c8 !important;
@@ -514,7 +350,6 @@ body.dark .canvas-container,
       }
     }
 
-    /* Tooltip text on palette hover */
     .djs-palette .entry::after {
       background: #ffffff !important;
       color: #1a1a1a !important;
@@ -524,12 +359,12 @@ body.dark .canvas-container,
 }
 
 /* Class-based dark mode */
-:root[data-theme="dark"],
+:root[data-theme='dark'],
 :root.dark,
-body[data-theme="dark"],
+body[data-theme='dark'],
 body.dark,
 .dark,
-[data-theme="dark"] {
+[data-theme='dark'] {
   :host ::ng-deep {
     .djs-palette {
       background: #ffffff !important;
