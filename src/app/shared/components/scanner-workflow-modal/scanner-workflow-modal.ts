@@ -163,6 +163,7 @@ export class ScannerWorkflowModal implements OnChanges, AfterViewChecked, OnDest
 
       // ── Fit viewport — exactly like the designer ───────────
       // designer: this.modeler.get('canvas').zoom('fit-viewport');
+
       this.modeler.get('canvas').zoom('fit-viewport');
 
       this.renderedKey = this.row?.config
@@ -213,7 +214,6 @@ export class ScannerWorkflowModal implements OnChanges, AfterViewChecked, OnDest
     if (cfg) this.fetchXml(cfg.workflow_key, cfg.version);
   }
 }
-
 
 
 
