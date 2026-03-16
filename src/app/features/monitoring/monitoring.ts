@@ -79,36 +79,50 @@ export class Monitoring implements OnInit, OnDestroy {
   /* ── History — full dataset ───────────────────────────────── */
   /**
    * Holds ALL scan events fetched from the backend (all pages combined).
-   * This is the source of truth for client-side search + filter + pagination.
+   * This is the single source of truth for history counts, search, filter,
+   * and pagination — ensuring the stat tiles and history list are always
+   * consistent with each other.
    */
   allScanEvents  = signal<ScanEventDto[]>([]);
   loadingHistory = signal(false);
 
-  /**
-   * Free-text search — matches scanner_id OR barcode, case-insensitive.
-   * Reacts live on every keystroke; no API calls triggered.
-   */
   historySearch = signal('');
-
-  /**
-   * Current page index within the CLIENT-SIDE paginated result.
-   * Resets to 0 whenever search text or filter chip changes.
-   */
-  displayPage = signal(0);
+  displayPage   = signal(0);
 
   historyDetail  = signal<LiveInstance | null>(null);
   loadingHDetail = signal(false);
 
-  /* ── Counts (stats bar) ───────────────────────────────────── */
-  runningCount   = computed(() => this.instances().filter(i => i.dto.status === 'RUNNING').length);
-  completedCount = computed(() => this.instances().filter(i => i.dto.status === 'COMPLETED').length);
-  failedCount    = computed(() => this.instances().filter(i => i.dto.status === 'FAILED').length);
+  /* ── Stat tile counts ─────────────────────────────────────── */
+  /**
+   * RUNNING count — from the live-polled instances list (most accurate
+   * real-time view; scan events don't capture in-progress instances).
+   */
+  runningCount = computed(() =>
+    this.instances().filter(i => i.dto.status === 'RUNNING').length
+  );
 
   /**
-   * Events that match the search text only (ignores status chip).
-   * Drives per-chip counts so they always show what's available for each status
-   * within the current search — before the chip filter narrows it further.
+   * COMPLETED and FAILED counts — derived from allScanEvents so they
+   * always match exactly what the history tab shows. This eliminates the
+   * inconsistency between the stat tiles and the history list.
    */
+  completedCount = computed(() =>
+    this.allScanEvents().filter(e => e.execution_status === 'COMPLETED').length
+  );
+
+  failedCount = computed(() =>
+    this.allScanEvents().filter(e => e.execution_status === 'FAILED').length
+  );
+
+  /**
+   * Total tile = COMPLETED + FAILED from scan events
+   * (excludes currently-running instances which have no scan event yet).
+   */
+  totalHistoryCount = computed(() =>
+    this.allScanEvents().length
+  );
+
+  /* ── Per-chip counts (respect active search text) ─────────── */
   private searchMatchedEvents = computed(() => {
     const q = this.historySearch().trim().toLowerCase();
     if (!q) return this.allScanEvents();
@@ -118,15 +132,11 @@ export class Monitoring implements OnInit, OnDestroy {
     );
   });
 
-  /** Per-chip counts — reflect search text, independent of current chip */
   filteredTotal     = computed(() => this.searchMatchedEvents().length);
   filteredCompleted = computed(() => this.searchMatchedEvents().filter(e => e.execution_status === 'COMPLETED').length);
   filteredFailed    = computed(() => this.searchMatchedEvents().filter(e => e.execution_status === 'FAILED').length);
 
-  /**
-   * Full filtered list (search + status chip) across ALL events — no paging.
-   * Used as the source for pagination below.
-   */
+  /* ── Full filtered list (search + status chip) ────────────── */
   private allFilteredEvents = computed(() => {
     const q = this.historySearch().trim().toLowerCase();
     const f = this.historyFilter();
@@ -139,21 +149,17 @@ export class Monitoring implements OnInit, OnDestroy {
     });
   });
 
-  /** Total number of filtered results — shown in pager */
   historyTotal  = computed(() => this.allFilteredEvents().length);
   historyPages  = computed(() => Math.max(1, Math.ceil(this.historyTotal() / HISTORY_PAGE_SIZE)));
 
-  /**
-   * The slice of events shown on the current display page.
-   * This is what the history list renders.
-   */
+  /** Current page slice — what the history list renders */
   filteredScanEvents = computed(() => {
     const page  = this.displayPage();
     const start = page * HISTORY_PAGE_SIZE;
     return this.allFilteredEvents().slice(start, start + HISTORY_PAGE_SIZE);
   });
 
-  /* ── Running instances (live tab list) ───────────────────── */
+  /* ── Running instances list (live tab) ───────────────────── */
   runningInstances = computed(() => {
     const q = this.searchQuery().toLowerCase();
     return this.instances()
@@ -171,7 +177,7 @@ export class Monitoring implements OnInit, OnDestroy {
     return this.instances().find(i => i.dto.id === this.selectedId()) ?? null;
   });
 
-  /* ── Polling ──────────────────────────────────────────────── */
+  /* ── Polling handles ──────────────────────────────────────── */
   private tickerHandle:    ReturnType<typeof setInterval> | null = null;
   private listPollHandle:  ReturnType<typeof setInterval> | null = null;
   private instancePollMap: Map<number, ReturnType<typeof setInterval>> = new Map();
@@ -311,7 +317,7 @@ export class Monitoring implements OnInit, OnDestroy {
     });
   }
 
-  /* ── Refresh ONLY the detail panel (right side) ───────────── */
+  /* ── Refresh ONLY the detail panel ───────────────────────── */
   refreshDetail(): void {
     const id = this.selectedId();
     if (id == null) return;
@@ -344,14 +350,7 @@ export class Monitoring implements OnInit, OnDestroy {
     }, 1_000);
   }
 
-  /* ── Load history — fetch ALL pages, store in allScanEvents ── */
-  /**
-   * Fetches every backend page (up to 1000 records) and accumulates them
-   * into allScanEvents. This gives the client the full dataset so that
-   * search and status filtering work across ALL records, not just one page.
-   * Client-side pagination (displayPage) then slices the filtered result
-   * into 20-item pages exactly as before.
-   */
+  /* ── Load history — fetch ALL pages into allScanEvents ────── */
   loadHistory(): void {
     this.loadingHistory.set(true);
     this.fetchAllPages(0, []);
@@ -362,10 +361,8 @@ export class Monitoring implements OnInit, OnDestroy {
       next: pg => {
         const all = [...accumulated, ...pg.content];
         if (pg.number < pg.totalPages - 1) {
-          // More pages exist — keep fetching silently
           this.fetchAllPages(page + 1, all);
         } else {
-          // All pages fetched — store and stop loading
           this.allScanEvents.set(all);
           this.displayPage.set(0);
           this.loadingHistory.set(false);
@@ -375,7 +372,7 @@ export class Monitoring implements OnInit, OnDestroy {
     });
   }
 
-  /* ── Select history event → load full detail ──────────────── */
+  /* ── Select history event ─────────────────────────────────── */
   selectHistoryEvent(ev: ScanEventDto): void {
     this.userHasSelected = true;
     this.selectedId.set(ev.instance_id);
@@ -424,20 +421,10 @@ export class Monitoring implements OnInit, OnDestroy {
     ) / 1_000));
   }
 
-  /** Returns true if a step name contains "invalid" (case-insensitive). */
   isInvalidStep(step: string): boolean {
     return step.toLowerCase().includes('invalid');
   }
 
-  /**
-   * Returns true if a step is the finalLane step and should be SKIPPED
-   * in the execution path loop (rendered separately as the green-arrow node).
-   *
-   * Checks BOTH `finalLane` (camelCase) and `lane_name` (snake_case) because
-   * the backend may send either key depending on the source (live vs history).
-   * Uses normalized comparison (lowercase + strip spaces) to handle
-   * formatting differences like "Lane2" vs "Lane 2".
-   */
   isFinalLaneStep(step: string, vars: InstanceVariables | null): boolean {
     if (!vars) return false;
     const lane = vars.finalLane ?? vars.lane_name;
@@ -484,10 +471,9 @@ export class Monitoring implements OnInit, OnDestroy {
 
   setHistoryFilter(f: HistoryFilter): void {
     this.historyFilter.set(f);
-    this.displayPage.set(0); // reset to first page on filter change
+    this.displayPage.set(0);
   }
 
-  /** Called on every search keystroke — resets to page 1 */
   onHistorySearchChange(value: string): void {
     this.historySearch.set(value);
     this.displayPage.set(0);
@@ -495,7 +481,6 @@ export class Monitoring implements OnInit, OnDestroy {
 
   toggleRaw(): void { this.expandedRaw.update(v => !v); }
 
-  /** Resets search text AND status chip, goes back to page 1 */
   resetHistorySearch(): void {
     this.historySearch.set('');
     this.historyFilter.set('ALL');
