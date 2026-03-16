@@ -325,6 +325,13 @@
   .djs-shape[data-element-id="Process_1"] .djs-label,
   .djs-shape[data-element-id^="Process_"] .djs-label {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+
+  /* Nuclear option — hides ANY root-process label bpmn-js renders */
+  .bjs-container svg .djs-group > .djs-shape > .djs-visual + .djs-label {
+    display: none !important;
   }
 
   /* Hide the BPMN.io watermark in the bottom-right corner */
@@ -343,6 +350,9 @@
     border-color: #e2e8f0 !important;
   }
 }
+
+
+
 
 
 
