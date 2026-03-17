@@ -26,7 +26,7 @@ export const HANDLER_OPTIONS = [
   { value: 'ContainerValidationHandler', label: 'Container Validation',  variable: 'containerValid'  },
   { value: 'WeightValidationHandler',    label: 'Weight Validation',     variable: 'weightValid'     },
   { value: 'DimensionValidationHandler', label: 'Dimension Validation',  variable: 'dimensionValid'  },
-  { value: 'LaneDiversionHandler',       label: 'Lane Diversion',        variable: 'laneDiverted'    },
+  // { value: 'LaneDiversionHandler',       label: 'Lane Diversion',        variable: 'laneDiverted'    },
 ] as const;
 
 /** Derive the SpEL variable name from a handler name stored on a ServiceTask */
