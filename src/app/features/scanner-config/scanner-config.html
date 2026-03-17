@@ -1,0 +1,604 @@
+<div class="scanner-page">
+
+  <!-- ── Page Header ── -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-icon">
+        <svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <rect x="2" y="5" width="14" height="9" rx="1.5"/>
+          <path d="M5 9h8M2 7h1M15 7h1"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="page-title">Scanner Mapping</h1>
+        <p class="page-subtitle">Assign workflows to physical scanning units</p>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-chip">
+        <span class="stat-value">{{ rows().length }}</span>
+        <span class="stat-label">Scanners</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-chip">
+        <span class="stat-dot mapped-dot"></span>
+        <span class="stat-value mapped-val">{{ mappedCount() }}</span>
+        <span class="stat-label">Mapped</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-chip">
+        <span class="stat-value">{{ unmappedCount() }}</span>
+        <span class="stat-label">Unmapped</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" (click)="openAddScanner()">
+      <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round">
+        <path d="M6.5 1v11M1 6.5h11"/>
+      </svg>
+      Add Scanner
+    </button>
+  </div>
+
+  <!-- ── Filter Bar ── -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 14 14" fill="none"
+           stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <circle cx="6" cy="6" r="4.5"/>
+        <path d="M9.5 9.5l3 3"/>
+      </svg>
+      <input class="search-input" type="text" placeholder="Search scanners…"
+             [ngModel]="scannerSearch()"
+             (ngModelChange)="scannerSearch.set($event)"
+             autocomplete="off" />
+      @if (scannerSearch()) {
+        <button class="search-clear" (click)="scannerSearch.set('')" title="Clear">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round">
+            <path d="M1 1l10 10M11 1L1 11"/>
+          </svg>
+        </button>
+      }
+    </div>
+
+    <div class="filter-pills">
+      <button class="pill" [class.pill-on]="mappingFilter() === 'all'"
+              (click)="mappingFilter.set('all')">All</button>
+      <button class="pill" [class.pill-on]="mappingFilter() === 'mapped'"
+              (click)="mappingFilter.set('mapped')">
+        <span class="pill-dot dot-mapped"></span>Mapped
+      </button>
+      <button class="pill" [class.pill-on]="mappingFilter() === 'unmapped'"
+              (click)="mappingFilter.set('unmapped')">
+        <span class="pill-dot dot-unmapped"></span>Unmapped
+      </button>
+    </div>
+
+    <!-- <div class="sort-wrap">
+      <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linecap="round">
+        <path d="M1 3h11M3 6.5h7M5 10h3"/>
+      </svg>
+      <select class="sort-select" [ngModel]="scannerSort()"
+              (ngModelChange)="scannerSort.set($event)">
+        <option value="id">Scanner ID</option>
+        <option value="mapped">Mapped first</option>
+        <option value="status">Online first</option>
+      </select>
+    </div> -->
+
+    @if (hasScannerFilters()) {
+      <button class="reset-btn" (click)="clearScannerFilters()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 6A5 5 0 1011 6M1 6V2M1 6H5"/>
+        </svg>
+        Reset
+      </button>
+    }
+
+    <button class="refresh-icon-btn" (click)="loadAll()" title="Refresh"
+            [class.spinning]="loading()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+        <polyline points="21 3 21 9 15 9"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── Loading ── -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="loading-ring"><div class="loading-ring-inner"></div></div>
+      <span>Loading scanner units…</span>
+    </div>
+  }
+
+  <!-- ── Error ── -->
+  @if (error() && !loading()) {
+    <div class="error-banner">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+           stroke-width="1.5" stroke-linecap="round">
+        <circle cx="8" cy="8" r="6"/>
+        <path d="M8 5v4M8 10.5v.5"/>
+      </svg>
+      <span>{{ error() }}</span>
+      <button class="btn btn-sm btn-ghost" (click)="loadAll()">Retry</button>
+    </div>
+  }
+
+  @if (!loading() && !error()) {
+
+    @if (rows().length === 0) {
+      <div class="empty-scanners">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor"
+             stroke-width="1.2" stroke-linecap="round">
+          <rect x="4" y="8" width="28" height="20" rx="3"/>
+          <path d="M11 18h14"/>
+        </svg>
+        <p>No scanners registered yet.</p>
+        <button class="btn btn-primary" style="margin-top:4px" (click)="openAddScanner()">
+          Add First Scanner
+        </button>
+      </div>
+    }
+
+    @if (rows().length > 0 && filteredRows().length === 0) {
+      <div class="empty-scanners">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor"
+             stroke-width="1.2" stroke-linecap="round">
+          <circle cx="14" cy="14" r="9"/><path d="M21.5 21.5l7 7"/>
+        </svg>
+        <p>No scanners match your filters.</p>
+        <button class="reset-btn" style="margin-top:4px" (click)="clearScannerFilters()">
+          Clear filters
+        </button>
+      </div>
+    }
+
+    @if (filteredRows().length > 0) {
+      <div class="scanners-grid">
+        @for (row of filteredRows(); track row.scanner.scanner_id) {
+
+          <!--
+            The whole card is clickable → opens workflow preview modal.
+            Action buttons inside stopPropagation so they don't trigger the modal.
+          -->
+          <div class="scanner-card"
+               [class.is-mapped]="!!row.config"
+               [class.is-inactive]="!row.scanner.status"
+               (click)="openWorkflowModal(row)"
+               title="Click to preview assigned workflow">
+
+            <div class="card-topbar">
+              <div class="unit-label">UNIT</div>
+              <div class="unit-number">{{ row.scanner.scanner_id }}</div>
+              <div class="card-status-light" [class.on]="row.scanner.status"></div>
+            </div>
+
+            <div class="card-info">
+              <div class="info-row">
+                <span class="info-key">STATUS</span>
+                <span class="info-val"
+                      [class.val-active]="row.scanner.status"
+                      [class.val-inactive]="!row.scanner.status">
+                  {{ row.scanner.status ? 'ONLINE' : 'OFFLINE' }}
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-key">WORKFLOW</span>
+                @if (row.config) {
+                  <span class="info-val val-workflow">{{ row.config.workflow_key }}</span>
+                } @else {
+                  <span class="info-val val-none">UNASSIGNED</span>
+                }
+              </div>
+              @if (row.config) {
+                <div class="info-row">
+                  <span class="info-key">VERSION</span>
+                  <span class="info-val val-version">v{{ row.config.version }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-key">SINCE</span>
+                  <span class="info-val val-date">{{ formatDate(row.config.created_at) }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Click-hint bar — only shown on mapped cards -->
+            @if (row.config) {
+              <div class="card-preview-hint">
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M1 7s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"/>
+                  <circle cx="7" cy="7" r="1.75"/>
+                </svg>
+                Click to preview diagram
+              </div>
+            }
+
+            <div class="card-actions" (click)="$event.stopPropagation()">
+              @if (row.config) {
+                <div class="card-btn-panel">
+                  <button class="card-btn btn-reassign" (click)="openAssign(row)" title="Reassign">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                         stroke-width="1.75" stroke-linecap="round">
+                      <path d="M8.5 1.5l2 2-6 6H2.5v-2l6-6z"/>
+                    </svg>
+                    Reassign
+                  </button>
+                  <button class="card-btn btn-detach" (click)="openDetach(row)" title="Detach">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                         stroke-width="1.75" stroke-linecap="round">
+                      <path d="M2 2l8 8M10 2L2 10"/>
+                    </svg>
+                    Detach
+                  </button>
+                </div>
+              } @else {
+                <button class="card-btn btn-assign" (click)="openAssign(row)"
+                        [disabled]="allWorkflows().length === 0">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                       stroke-width="1.75" stroke-linecap="round">
+                    <path d="M6 1v10M1 6h10"/>
+                  </svg>
+                  Assign Workflow
+                </button>
+              }
+            </div>
+
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>
+
+
+<!-- ══════════════════════════ WORKFLOW PREVIEW MODAL ══════════════════════════ -->
+<app-scanner-workflow-modal
+  [visible]="showWorkflowModal()"
+  [row]="modalRow()"
+  (close)="closeWorkflowModal()"
+/>
+
+
+<!-- ══════════════════════════ ASSIGN DRAWER ══════════════════════════ -->
+@if (showDrawer() && drawer()) {
+  <div class="drawer-overlay" (click)="cancelAssign()">
+    <div class="drawer" (click)="$event.stopPropagation()">
+
+      <div class="drawer-header">
+        <div class="drawer-header-top">
+          <div class="drawer-eyebrow">
+            <span class="eyebrow-dot small"></span>
+            {{ drawer()!.existingConfig ? 'REASSIGN' : 'ASSIGN' }} WORKFLOW
+          </div>
+          <button class="drawer-close" (click)="cancelAssign()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
+              <path d="M1 1l12 12M13 1L1 13"/>
+            </svg>
+          </button>
+        </div>
+        <div class="drawer-scanner-badge">
+          <div class="drawer-scanner-icon">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
+              <path d="M1 5V3a2 2 0 012-2h2M11 1h2a2 2 0 012 2v2M15 11v2a2 2 0 01-2 2h-2M5 15H3a2 2 0 01-2-2v-2"/>
+              <path d="M5 8h6"/>
+            </svg>
+          </div>
+          <div>
+            <div class="drawer-scanner-id">{{ drawer()!.scanner.scanner_id }}</div>
+            <div class="drawer-scanner-sub">
+              @if (drawer()!.existingConfig) {
+                Currently: {{ drawer()!.existingConfig!.workflow_key }} v{{ drawer()!.existingConfig!.version }}
+              } @else { No workflow assigned }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-body">
+        @if (allWorkflows().length === 0 && !workflowsLoading()) {
+          <div class="drawer-empty-warn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v5M12 15v1"/>
+            </svg>
+            <p>No workflows available.</p>
+            <span>Deploy a workflow from the Designer first.</span>
+          </div>
+        } @else {
+
+          <div class="drawer-step">
+            <div class="step-label">
+              <span class="step-number">1</span>
+              SELECT WORKFLOW
+            </div>
+            <div class="wf-search-wrap">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+                   stroke-width="1.5" stroke-linecap="round">
+                <circle cx="5.5" cy="5.5" r="4"/><path d="M8.5 8.5l3 3"/>
+              </svg>
+              <input class="wf-search-input" type="text" placeholder="Search workflows…"
+                     [ngModel]="wfSearch()" (ngModelChange)="wfSearch.set($event)"
+                     autocomplete="off" />
+              @if (wfSearch()) {
+                <button class="wf-search-clear" (click)="wfSearch.set('')">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor"
+                       stroke-width="1.5" stroke-linecap="round">
+                    <path d="M1 1l8 8M9 1L1 9"/>
+                  </svg>
+                </button>
+              }
+            </div>
+
+            @if (workflowsLoading()) {
+              <div class="wf-loading"><span class="wf-spinner"></span> Loading workflows…</div>
+            } @else {
+              @if (filteredWorkflows().length === 0) {
+                <div class="wf-no-results">No workflows match "{{ wfSearch() }}"</div>
+              } @else {
+                <div class="workflow-options">
+                  @for (wf of filteredWorkflows(); track wf.workflow_key) {
+                    <div class="workflow-option"
+                         [class.selected]="drawer()!.selectedKey === wf.workflow_key"
+                         (click)="selectWorkflowKey(wf.workflow_key)">
+                      <div class="workflow-option-left">
+                        <div class="workflow-option-avatar"
+                             [class.avatar-selected]="drawer()!.selectedKey === wf.workflow_key">
+                          {{ getAvatarLetter(wf.workflow_key) }}
+                        </div>
+                        <span class="workflow-option-key">{{ wf.workflow_key }}</span>
+                      </div>
+                      @if (drawer()!.selectedKey === wf.workflow_key) {
+                        <svg class="check-icon" width="14" height="14" viewBox="0 0 14 14"
+                             fill="none" stroke="currentColor" stroke-width="2.5"
+                             stroke-linecap="round">
+                          <path d="M2 7l3.5 3.5L12 3"/>
+                        </svg>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+
+          @if (drawer()!.selectedKey) {
+            <div class="drawer-step">
+              <div class="step-label">
+                <span class="step-number">2</span>
+                SELECT VERSION
+                <span class="step-key-hint">{{ drawer()!.selectedKey }}</span>
+              </div>
+              @if (versionsForKey().length === 0) {
+                <div class="wf-loading"><span class="wf-spinner"></span> Loading versions…</div>
+              } @else {
+                <div class="version-options">
+                  @for (ver of versionsForKey(); track ver.version) {
+                    <div class="version-option"
+                         [class.selected]="drawer()!.selectedVersion === ver.version"
+                         (click)="selectVersion(ver.version)">
+                      <div class="version-option-left">
+                        <span class="version-option-tag"
+                              [class.ver-tag-selected]="drawer()!.selectedVersion === ver.version">
+                          v{{ ver.version }}
+                        </span>
+                        <span class="ver-status-chip" [class.chip-active]="ver.is_active">
+                          @if (ver.is_active) {
+                            <span class="ver-status-dot ver-active"></span>Active
+                          } @else {
+                            <span class="ver-status-dot"></span>Inactive
+                          }
+                        </span>
+                      </div>
+                      <div class="version-option-right">
+                        <span class="ver-date">{{ formatDate(ver.created_at) }}</span>
+                        @if (drawer()!.selectedVersion === ver.version) {
+                          <svg class="check-icon" width="13" height="13" viewBox="0 0 14 14"
+                               fill="none" stroke="currentColor" stroke-width="2.5"
+                               stroke-linecap="round">
+                            <path d="M2 7l3.5 3.5L12 3"/>
+                          </svg>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+                <p class="ver-hint">
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+                       stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <circle cx="6" cy="6" r="4.5"/><path d="M6 4v3M6 8.5v.5"/>
+                  </svg>
+                  Saving the mapping will activate the selected version automatically.
+                </p>
+              }
+            </div>
+          }
+
+          @if (drawer()!.selectedKey && drawer()!.selectedVersion) {
+            <div class="assignment-preview">
+              <div class="preview-from">
+                <span class="preview-label">SCANNER</span>
+                <span class="preview-value">{{ drawer()!.scanner.scanner_id }}</span>
+              </div>
+              <div class="preview-arrow">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M4 10h12M12 6l4 4-4 4"/>
+                </svg>
+              </div>
+              <div class="preview-to">
+                <span class="preview-label">WORKFLOW</span>
+                <span class="preview-value">
+                  {{ drawer()!.selectedKey }} <em>v{{ drawer()!.selectedVersion }}</em>
+                </span>
+              </div>
+            </div>
+          }
+
+        }
+      </div>
+
+      <div class="drawer-footer">
+        <button class="drawer-cancel" (click)="cancelAssign()" [disabled]="saving()">Cancel</button>
+        <button class="drawer-confirm" (click)="confirmAssign()"
+                [disabled]="!drawer()!.selectedKey || !drawer()!.selectedVersion || saving()
+                            || allWorkflows().length === 0">
+          @if (saving()) {
+            <span class="wf-spinner"></span>
+            {{ drawer()!.existingConfig ? 'Updating…' : 'Activating…' }}
+          } @else {
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+                 stroke-width="1.75" stroke-linecap="round">
+              <path d="M10.5 6.5l-7-4v8l7-4z"/>
+            </svg>
+            {{ drawer()!.existingConfig ? 'Update Mapping' : 'Activate Mapping' }}
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+
+<!-- ══════════════════════════ DETACH MODAL ══════════════════════════ -->
+@if (detachTarget()) {
+  <div class="modal-backdrop" (click)="cancelDetach()">
+    <div class="confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <path d="M11 8v5M11 15v1"/>
+          <path d="M9.3 3l-8 14a2 2 0 001.7 3h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/>
+        </svg>
+      </div>
+      <h3 class="confirm-title">Detach Workflow?</h3>
+      <p class="confirm-desc">
+        <strong>{{ detachTarget()!.scanner.scanner_id }}</strong> will be detached from
+        <strong>{{ detachTarget()!.config?.workflow_key }} v{{ detachTarget()!.config?.version }}</strong>.
+      </p>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" (click)="cancelDetach()" [disabled]="detaching()">Cancel</button>
+        <button class="btn-danger-solid" (click)="confirmDetach()" [disabled]="detaching()">
+          @if (detaching()) { <span class="wf-spinner"></span> Detaching… }
+          @else { Detach }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+
+<!-- ══════════════════════════ ADD SCANNER MODAL ══════════════════════════ -->
+@if (showAddScanner()) {
+  <div class="modal-backdrop" (click)="cancelAddScanner()">
+    <div class="confirm-modal add-scanner-modal" (click)="$event.stopPropagation()">
+
+      <div class="confirm-icon add-icon">
+        <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round">
+          <rect x="2" y="5" width="13" height="9" rx="1.5"/>
+          <path d="M6 10h5M15 7h3M15 10h3M15 13h3"/>
+        </svg>
+      </div>
+
+      <h3 class="confirm-title">Register New Scanner</h3>
+      <p class="confirm-desc">
+        Enter the Scanner ID. Accepted formats:
+        <strong>SC-1</strong>, <strong>SC_1</strong>, <strong>SC1</strong>,
+        <strong>Scanner-1</strong>, <strong>Scanner_1</strong>, <strong>Scanner 1</strong>
+        — upper or lower case.
+      </p>
+
+      <div class="add-scanner-field" style="margin-top:20px">
+        <label class="add-field-label">Scanner ID</label>
+        <input
+          class="add-field-input"
+          [class.has-error]="!!addScannerError()"
+          [class.has-preview]="!!normalizedPreview() && !addScannerError()"
+          type="text"
+          placeholder="e.g. SC-1, scanner_2, SC3…"
+          [ngModel]="newScannerId()"
+          (ngModelChange)="onScannerIdChange($event)"
+          (keydown.enter)="confirmAddScanner()"
+          autocomplete="off"
+        />
+
+        <!-- Live canonical preview (shown while input is valid) -->
+        @if (normalizedPreview() && !addScannerError()) {
+          <div class="add-field-preview">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M2 6l3 3 5-4.5"/>
+            </svg>
+            Will be saved as:&nbsp;<strong>{{ normalizedPreview() }}</strong>
+          </div>
+        }
+
+        @if (addScannerError()) {
+          <span class="add-field-error">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round">
+              <circle cx="6" cy="6" r="4.5"/><path d="M6 4v3M6 8.5v.5"/>
+            </svg>
+            {{ addScannerError() }}
+          </span>
+        }
+      </div>
+
+      <!-- Allowed formats hint -->
+      <div class="add-format-examples">
+        <span class="add-format-label">Accepted formats</span>
+        <div class="add-format-chips">
+          <code class="add-format-chip">SC-1</code>
+          <code class="add-format-chip">SC_2</code>
+          <code class="add-format-chip">SC3</code>
+          <code class="add-format-chip">Scanner-1</code>
+          <code class="add-format-chip">scanner_2</code>
+          <code class="add-format-chip">SCANNER 3</code>
+        </div>
+      </div>
+
+      <!-- Default status hint -->
+      <div class="add-scanner-status-row" style="margin-top:12px">
+        <span class="add-status-label">Initial status</span>
+        <span class="add-status-badge">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--status-success);display:inline-block;flex-shrink:0"></span>
+          Active
+        </span>
+      </div>
+
+      <div class="confirm-actions" style="margin-top:24px">
+        <button class="btn btn-ghost" (click)="cancelAddScanner()"
+                [disabled]="addingScanner()">Cancel</button>
+        <button class="btn btn-primary" (click)="confirmAddScanner()"
+                [disabled]="!newScannerId().trim() || addingScanner()">
+          @if (addingScanner()) {
+            <span class="wf-spinner"></span> Registering…
+          } @else {
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+                 stroke-width="1.75" stroke-linecap="round">
+              <path d="M6.5 1v11M1 6.5h11"/>
+            </svg>
+            Register Scanner
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+

@@ -1,0 +1,199 @@
+@if (visible) {
+  <div class="modal-backdrop" (click)="onBackdropClick($event)">
+    <div class="modal-panel">
+
+      <!-- Header -->
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M10.5 6.5l-7-4v8l7-4z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="modal-title">
+              {{ editMode ? 'Update Workflow' : 'Deploy Workflow' }}
+            </h2>
+            <p class="modal-subtitle">
+              {{ editMode
+                ? 'Deploy updated BPMN — will create version v' + nextVersion
+                : 'Send BPMN workflow to the engine'
+              }}
+            </p>
+          </div>
+        </div>
+        <button class="modal-close" (click)="onCancel()" [disabled]="deploying()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M1 1l12 12M13 1L1 13"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+
+        <!-- Version banner (edit mode only) -->
+        @if (editMode) {
+          <div class="version-banner">
+            <div class="version-banner-left">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M6.5 1v11M1 6.5h11"/>
+              </svg>
+              <span>New version will be created</span>
+            </div>
+            <div class="version-tags">
+              <span class="version-tag old">v{{ nextVersion - 1 }}</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M2 6h8M7 3l3 3-3 3"/>
+              </svg>
+              <span class="version-tag new">v{{ nextVersion }}</span>
+            </div>
+          </div>
+        }
+
+        <!-- Workflow Key -->
+        <div class="form-group">
+          <label class="form-label">
+            Workflow Key
+            <span class="form-required">*</span>
+          </label>
+          @if (editMode) {
+            <!-- Locked in edit mode -->
+            <div class="locked-input">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <rect x="2" y="5" width="8" height="6" rx="1"/>
+                <path d="M4 5V3.5a2 2 0 014 0V5"/>
+              </svg>
+              <span>{{ form.workflow_key }}</span>
+            </div>
+            <span class="form-hint">Key is locked for updates — same key, new version</span>
+          } @else {
+            <input
+              class="form-input"
+              [class.form-input-error]="keyError() || duplicateKeyError()"
+              type="text"
+              placeholder="e.g. scanner-1-workflow"
+              [value]="form.workflow_key"
+              (input)="onKeyChange($any($event.target).value)"
+              [disabled]="deploying()"
+            />
+
+            <!-- Format validation error -->
+            @if (keyError()) {
+              <span class="form-error">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <circle cx="5.5" cy="5.5" r="4.5"/>
+                  <path d="M5.5 3.5v2M5.5 7v.5"/>
+                </svg>
+                {{ keyError() }}
+              </span>
+            }
+
+            <!-- ── Duplicate key warning ──────────────────────────────── -->
+            @else if (duplicateKeyError()) {
+              <div class="duplicate-warn">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                     stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
+                     class="duplicate-warn-icon">
+                  <path d="M7 1.5L13.5 12.5H0.5L7 1.5z"/>
+                  <path d="M7 5.5v3M7 10v.5"/>
+                </svg>
+                <div>
+                  <p class="duplicate-warn-title">Workflow key already exists</p>
+                  <p class="duplicate-warn-body">{{ duplicateKeyError() }}</p>
+                </div>
+              </div>
+            }
+
+            @else {
+              <span class="form-hint">
+                Alphanumeric, hyphens and underscores — e.g. <code>scanner-1-workflow</code>
+              </span>
+            }
+          }
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+          <label class="form-label">
+            Description
+            <span class="form-optional">(optional)</span>
+          </label>
+          <textarea
+            class="form-input form-textarea"
+            placeholder="Describe what this workflow does..."
+            [(ngModel)]="form.description"
+            [disabled]="deploying()"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <!-- XML Status -->
+        <div class="xml-preview">
+          <div class="xml-preview-left">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M3 3L1 6l2 3M9 3l2 3-2 3M7 1L5 11"/>
+            </svg>
+            <span>BPMN XML ready</span>
+          </div>
+          <span class="xml-size">{{ bpmn_xml.length | number }} chars</span>
+        </div>
+
+        <!-- Payload preview -->
+        <div class="payload-preview">
+          <div class="payload-header">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M1 3h9M1 6h9M1 9h5"/>
+            </svg>
+            POST /api/workflow/deploy
+          </div>
+          <div class="payload-body">
+            <span class="payload-key">workflow_key:</span>
+            <span class="payload-val">{{ form.workflow_key || '—' }}</span>
+            <span class="payload-key">description:</span>
+            <span class="payload-val">{{ form.description || '—' }}</span>
+            <span class="payload-key">bpmn_xml:</span>
+            <span class="payload-val">{{ bpmn_xml.length }} chars</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button class="btn btn-ghost" (click)="onCancel()" [disabled]="deploying()">
+          Cancel
+        </button>
+        <button
+          class="btn btn-primary"
+          [disabled]="!isValid() || deploying()"
+          (click)="onDeploy()"
+        >
+          @if (deploying()) {
+            <span class="btn-spinner"></span>
+            Deploying...
+          } @else {
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M10.5 6.5l-7-4v8l7-4z"/>
+            </svg>
+            {{ editMode ? 'Deploy v' + nextVersion : 'Deploy to Engine' }}
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+
+
+

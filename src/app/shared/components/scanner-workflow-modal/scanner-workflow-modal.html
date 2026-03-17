@@ -1,0 +1,154 @@
+@if (visible && row) {
+
+  <!-- ── Backdrop ─────────────────────────────────────────── -->
+  <div class="swm-backdrop" (click)="close.emit()">
+
+    <!-- ── Modal ──────────────────────────────────────────── -->
+    <div class="swm-modal" (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="swm-header">
+        <div class="swm-header-left">
+          <div class="swm-scanner-icon">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M1 5V3a2 2 0 012-2h2M11 1h2a2 2 0 012 2v2
+                       M15 11v2a2 2 0 01-2 2h-2M5 15H3a2 2 0 01-2-2v-2M5 8h6"/>
+            </svg>
+          </div>
+          <div>
+            <div class="swm-scanner-id">{{ row.scanner.scanner_id }}</div>
+            <div class="swm-scanner-sub">
+              @if (row.config) {
+                {{ row.config.workflow_key }}&nbsp;&middot;&nbsp;v{{ row.config.version }}
+              } @else {
+                No workflow assigned
+              }
+            </div>
+          </div>
+        </div>
+        <button class="swm-close" (click)="close.emit()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M1 1l12 12M13 1L1 13"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="swm-body">
+
+        <!-- ── No config (unmapped scanner) ──────────────── -->
+        @if (!row.config) {
+          <div class="swm-empty">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none"
+                 stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+              <rect x="6" y="10" width="28" height="20" rx="3"/>
+              <path d="M14 20h12M6 16h2M32 16h2"/>
+            </svg>
+            <p>No workflow assigned to this scanner.</p>
+            <span>Use <strong>Assign Workflow</strong> to connect a workflow.</span>
+          </div>
+
+        } @else {
+
+          <!--
+            Loading spinner — shown while fetch + bpmn-js init is in progress.
+            Sits on top of (or instead of) the canvas.
+          -->
+          @if (loading()) {
+            <div class="swm-loading">
+              <div class="swm-spin-ring"></div>
+              <span>Loading workflow diagram…</span>
+            </div>
+          }
+
+          <!--
+            Error state
+          -->
+          @if (!loading() && loadError()) {
+            <div class="swm-error">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <circle cx="10" cy="10" r="8"/>
+                <path d="M10 7v4M10 13v1"/>
+              </svg>
+              <span>{{ loadError() }}</span>
+              <button class="swm-retry" (click)="retry()">Retry</button>
+            </div>
+          }
+
+          <!--
+            BPMN canvas container.
+
+            CRITICAL: This div is ALWAYS rendered while row.config exists
+            (not inside an @if), so that @ViewChild('bpmnCanvas') resolves
+            as soon as the modal opens — exactly how the designer's canvas
+            is always present before ngAfterViewInit fires.
+
+            It is hidden via CSS while loading or in error state.
+            bpmn-js mounts into this element the same way the designer does:
+              this.modeler = new BpmnViewer({ container: this.canvasRef.nativeElement })
+              await this.modeler.importXML(xml)
+              this.modeler.get('canvas').zoom('fit-viewport')
+          -->
+          <div class="swm-canvas-wrap"
+               [class.swm-canvas-hidden]="loading() || !!loadError()">
+
+            <div #bpmnCanvas class="swm-canvas"></div>
+
+            <!-- Zoom controls — visible once diagram is rendered -->
+            <div class="swm-zoom-bar">
+              <button class="swm-zoom-btn" (click)="zoomIn()" title="Zoom in">
+                <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M6.5 2v9M2 6.5h9"/>
+                </svg>
+              </button>
+              <button class="swm-zoom-btn" (click)="zoomReset()" title="Fit view">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                  <rect x="2" y="2" width="10" height="10" rx="1.5"/>
+                  <path d="M5 7h4M7 5v4"/>
+                </svg>
+              </button>
+              <button class="swm-zoom-btn" (click)="zoomOut()" title="Zoom out">
+                <svg width="14" height="14" viewBox="0 0 13 13" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M2 6.5h9"/>
+                </svg>
+              </button>
+            </div>
+
+          </div>
+
+        }
+
+      </div>
+
+      <!-- Footer (only shown for mapped scanners) -->
+      @if (row.config) {
+        <div class="swm-footer">
+          <div class="swm-meta">
+            <span class="swm-meta-chip">
+              <span class="swm-dot" [class.swm-dot-on]="row.scanner.status"></span>
+              <!-- {{ row.scanner.status ? 'Online' : 'Offline' }} -->
+              Active
+            </span>
+            <span class="swm-meta-chip swm-chip-workflow">
+              {{ row.config.workflow_key }}
+            </span>
+            <span class="swm-meta-chip swm-chip-version">
+              v{{ row.config.version }}
+            </span>
+          </div>
+          <button class="swm-footer-close" (click)="close.emit()">Close</button>
+        </div>
+      }
+
+    </div>
+  </div>
+}
+
+
+

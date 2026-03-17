@@ -1,0 +1,84 @@
+<div class="modal-backdrop" *ngIf="visible" (click)="onBackdropClick($event)">
+  <div class="modal-box validation-modal">
+
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon" [class.has-warnings]="warnings.length > 0 && errors.length === 0">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M8 2l6 12H2L8 2z"/>
+            <path d="M8 7v3M8 12h.01"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="modal-title">
+            {{ errors.length > 0 ? 'Workflow has errors' : 'Workflow has warnings' }}
+          </h2>
+          <p class="modal-subtitle">
+            Fix all errors before deploying.
+          </p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="close.emit()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 1l12 12M13 1L1 13"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Errors -->
+      @if (errors.length > 0) {
+        <div class="validation-section">
+          <div class="validation-section-header error">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <circle cx="6" cy="6" r="5"/>
+              <path d="M6 4v2.5M6 8.5h.01"/>
+            </svg>
+            {{ errors.length }} Error{{ errors.length !== 1 ? 's' : '' }}
+          </div>
+          @for (err of errors; track err.rule + err.elementId) {
+            <div class="validation-item error">
+              <div class="validation-item-rule">{{ err.rule }}</div>
+              <p class="validation-item-msg">{{ err.message }}</p>
+              @if (err.elementId) {
+                <span class="validation-item-id">{{ err.elementId }}</span>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Warnings -->
+      @if (warnings.length > 0) {
+        <div class="validation-section">
+          <div class="validation-section-header warning">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M6 1l5 10H1L6 1z"/>
+              <path d="M6 5v2.5M6 9h.01"/>
+            </svg>
+            {{ warnings.length }} Warning{{ warnings.length !== 1 ? 's' : '' }}
+          </div>
+          @for (warn of warnings; track warn.rule + warn.elementId) {
+            <div class="validation-item warning">
+              <div class="validation-item-rule">{{ warn.rule }}</div>
+              <p class="validation-item-msg">{{ warn.message }}</p>
+            </div>
+          }
+        </div>
+      }
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-sm" (click)="close.emit()">
+        Back to Editor
+      </button>
+    </div>
+
+  </div>
+</div>
