@@ -165,11 +165,10 @@ export class BpmnCanvasValidator {
       }
     }
 
-    // ── Rule 8 (NEW): ServiceTask outgoing must connect to ExclusiveGateway ──
+    // ── Rule 8: ServiceTask outgoing must connect to ExclusiveGateway ────────
     for (const task of serviceTasks) {
       const outgoing: any[] = task.outgoing || [];
 
-      // Must have exactly 1 outgoing
       if (outgoing.length > 1) {
         errors.push({
           elementId: task.id,
@@ -180,7 +179,6 @@ export class BpmnCanvasValidator {
         });
       }
 
-      // Outgoing target must be an ExclusiveGateway
       for (const flow of outgoing) {
         const target = flow.target;
         if (!target) continue;
@@ -197,7 +195,7 @@ export class BpmnCanvasValidator {
       }
     }
 
-    // ── Rule 9 (NEW): ExclusiveGateway must have exactly 2 outgoing flows ────
+    // ── Rule 9: ExclusiveGateway must have exactly 2 outgoing flows ──────────
     for (const gw of gateways) {
       const outgoing: any[] = gw.outgoing || [];
 
@@ -212,7 +210,7 @@ export class BpmnCanvasValidator {
         });
       }
 
-      // ── Rule 10 (existing): all outgoing flows must have conditionExpression
+      // ── Rule 10: all outgoing flows must have conditionExpression ───────────
       for (const flow of outgoing) {
         const condition = flow.businessObject?.conditionExpression?.body?.trim();
         if (!condition) {
@@ -225,6 +223,81 @@ export class BpmnCanvasValidator {
             severity: 'error',
           });
         }
+      }
+    }
+
+    // ── Rule 11: Every element must have a saved label ───────────────────────
+    // End Events must have a Lane N label
+    for (const el of endEvents) {
+      const name = el.businessObject?.name?.trim();
+      if (!name) {
+        errors.push({
+          elementId: el.id,
+          elementName: 'End Event',
+          rule: 'MISSING_LABEL',
+          message: `An End Event (${el.id}) has no saved label. Open its properties and save a Lane label (e.g. "Lane 1").`,
+          severity: 'error',
+        });
+      }
+    }
+
+    // Gateways must have a name
+    for (const gw of gateways) {
+      const name = gw.businessObject?.name?.trim();
+      if (!name) {
+        errors.push({
+          elementId: gw.id,
+          elementName: null,
+          rule: 'MISSING_LABEL',
+          message: `An Exclusive Gateway (${gw.id}) has no saved name. Open its properties and save a name.`,
+          severity: 'error',
+        });
+      }
+    }
+
+    // Sequence flows must have a label saved
+    for (const flow of flows) {
+      const name = flow.businessObject?.name?.trim();
+      // Gateway flows auto-label as "Success"/"Failure" — these are always set on save.
+      // Plain flows require explicit "Flow N" label.
+      // We check both: either the user saved a name, or it's a gateway flow with a condition
+      // (which sets the label automatically).
+      const fromGateway = flow.source?.type === 'bpmn:ExclusiveGateway';
+      const hasCondition = !!flow.businessObject?.conditionExpression?.body?.trim();
+
+      if (!name) {
+        if (fromGateway && !hasCondition) {
+          // Will already be caught by MISSING_CONDITION — skip duplicate
+          continue;
+        }
+        if (!fromGateway) {
+          errors.push({
+            elementId: flow.id,
+            elementName: null,
+            rule: 'MISSING_LABEL',
+            message: `A Sequence Flow (${flow.id}) has no saved label. Click the flow and save a label (e.g. "Flow 1").`,
+            severity: 'error',
+          });
+        }
+      }
+    }
+
+    // ── Rule 12: End Event labels must be unique ─────────────────────────────
+    const endLabelsSeen = new Map<string, string>(); // label → first elementId
+    for (const el of endEvents) {
+      const name = el.businessObject?.name?.trim();
+      if (!name) continue; // already caught by Rule 11
+      const key = name.toLowerCase();
+      if (endLabelsSeen.has(key)) {
+        errors.push({
+          elementId: el.id,
+          elementName: name,
+          rule: 'DUPLICATE_END_EVENT_LABEL',
+          message: `Duplicate End Event label "${name}". Every End Event must have a unique lane label.`,
+          severity: 'error',
+        });
+      } else {
+        endLabelsSeen.set(key, el.id);
       }
     }
 
@@ -245,5 +318,7 @@ export class BpmnCanvasValidator {
     };
   }
 }
+
+
 
 

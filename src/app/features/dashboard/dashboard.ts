@@ -57,6 +57,20 @@ export class Dashboard implements OnInit {
 
   readonly tileDefs: StatTile[] = [
     {
+      key: 'total_workflows',
+      label: 'Total Workflows',
+      trend: 'Across all unique definitions',
+      accent: 'version',
+      iconBg: 'rgba(2,132,199,0.1)',
+      iconColor: '#0284c7',
+      badge: 'neutral',
+      badgeLabel: 'Total',
+      badgeLive: false,
+      svgPath: `<path d="M9 1v5M9 12v5M1 9h5M12 9h5"/>
+                   <circle cx="9" cy="9" r="3"/>`,
+      trendIcon: `<path d="M2 9V5l4-3 4 3v4"/><path d="M5 12V9h2v3"/>`,
+    },
+    {
       key: 'active_workflows',
       label: 'Active Workflows',
       trend: 'Running across all instances',
@@ -73,8 +87,36 @@ export class Dashboard implements OnInit {
       trendIcon: `<path d="M1 9l3-4 3 2 4-5"/>`,
     },
     {
+      key: 'total_scanners',
+      label: 'Total Scanners',
+      trend: 'Across This Warehouse',
+      accent: 'version',
+      iconBg: 'rgba(124,58,237,0.1)',
+      iconColor: '#7c3aed',
+      badge: 'neutral',
+      badgeLabel: 'Total',
+      badgeLive: false,
+      svgPath: `<rect x="2" y="5" width="14" height="9" rx="1.5"/>
+          <path d="M5 9h8M2 7h1M15 7h1"/>`,
+      trendIcon: `<path d="M2 9V5l4-3 4 3v4"/><path d="M5 12V9h2v3"/>`,
+    },
+    {
+      key: 'mapped_scanners',
+      label: 'Scanners Mapped',
+      trend: 'Configure in scanner config',
+      accent: 'scanner',
+      iconBg: 'rgba(217,119,6,0.1)',
+      iconColor: '#d97706',
+      badge: 'neutral',
+      badgeLabel: 'Scanners',
+      badgeLive: false,
+      svgPath: `<path d="M1 6V3a2 2 0 012-2h3M12 1h3a2 2 0 012 2v3M17 12v3a2 2 0 01-2 2h-3M6 17H3a2 2 0 01-2-2v-3"/>
+                   <path d="M6 9h6"/>`,
+      trendIcon: `<path d="M6 1v4M6 7v4M1 6h4M7 6h4"/>`,
+    },
+    {
       key: 'total_workflow_instances',
-      label: 'Instances Running',
+      label: 'Total Instances',
       trend: 'Real-time execution count',
       accent: 'live',
       iconBg: 'rgba(5,150,105,0.1)',
@@ -85,34 +127,6 @@ export class Dashboard implements OnInit {
       svgPath: `<circle cx="9" cy="9" r="7"/>
                    <path d="M9 5.5v3.5l2.5 2"/>`,
       trendIcon: `<circle cx="6" cy="6" r="4.5"/><path d="M6 3.5v2.5l1.5 1.5"/>`,
-    },
-    {
-      key: 'mapped_scanners',
-      label: 'Scanners Mapped',
-      trend: 'Configure in scanner config',
-      accent: 'scanner',
-      iconBg: 'rgba(217,119,6,0.1)',
-      iconColor: '#d97706',
-      badge: 'neutral',
-      badgeLabel: 'Setup',
-      badgeLive: false,
-      svgPath: `<path d="M1 6V3a2 2 0 012-2h3M12 1h3a2 2 0 012 2v3M17 12v3a2 2 0 01-2 2h-3M6 17H3a2 2 0 01-2-2v-3"/>
-                   <path d="M6 9h6"/>`,
-      trendIcon: `<path d="M6 1v4M6 7v4M1 6h4M7 6h4"/>`,
-    },
-    {
-      key: 'total_workflows',
-      label: 'Total Workflows',
-      trend: 'Across all unique definitions',
-      accent: 'version',
-      iconBg: 'rgba(2,132,199,0.1)',
-      iconColor: '#0284c7',
-      badge: 'neutral',
-      badgeLabel: 'Total',
-      badgeLive: false,
-      svgPath: `<path d="M9 1v5M9 12v5M1 9h5M12 9h5"/>
-                   <circle cx="9" cy="9" r="3"/>`,
-      trendIcon: `<path d="M2 9V5l4-3 4 3v4"/><path d="M5 12V9h2v3"/>`,
     },
   ];
 

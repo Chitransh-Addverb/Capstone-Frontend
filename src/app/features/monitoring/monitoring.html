@@ -25,7 +25,15 @@
         </div>
       </div>
 
-      <!-- ── Stats bar: Running → live tab; Done/Failed/Total → history with filter ── -->
+      <!--
+        ── Stats bar ──
+        All four counts now come from the SAME data source:
+        • Running  → instances() live poll (only source that has in-progress)
+        • Done     → allScanEvents COMPLETED  (same source as history list)
+        • Failed   → allScanEvents FAILED     (same source as history list)
+        • Total    → allScanEvents total       (same source as history list)
+        This guarantees the tiles always match what the history tab shows.
+      -->
       <div class="rail-stats">
         <button class="stat-btn"
                 [class.stat-active-amber]="activeTab() === 'live'"
@@ -48,7 +56,7 @@
         <button class="stat-btn"
                 [class.stat-active-blue]="activeTab() === 'history' && historyFilter() === 'ALL'"
                 (click)="goToHistory('ALL')">
-          <span class="stat-num">{{ instances().length }}</span>
+          <span class="stat-num">{{ totalHistoryCount() }}</span>
           <span class="stat-lbl">Total</span>
         </button>
       </div>
@@ -119,9 +127,7 @@
         }
       </div>
 
-      <!-- ── History inline status filter chips (only on history tab) ── -->
-      <!-- Replaces the old hist-filters bar. Placed directly below search so
-           the user can search first, then narrow by status. -->
+      <!-- ── History status filter chips ── -->
       @if (activeTab() === 'history') {
         <div class="hist-filters">
           <button class="hf-btn" [class.hf-active]="historyFilter() === 'ALL'"
@@ -140,7 +146,7 @@
             <span class="hf-count">{{ filteredFailed() }}</span>
           </button>
           @if (historySearch() || historyFilter() !== 'ALL') {
-            <button class="hf-btn hf-reset font-extralight" (click)="resetHistorySearch()" title="Clear all filters">
+            <button class="hf-btn hf-reset" (click)="resetHistorySearch()" title="Clear all filters">
               <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor"
                    stroke-width="2" stroke-linecap="round">
                 <path d="M1 1l8 8M9 1L1 9"/>
@@ -153,7 +159,7 @@
 
     </div><!-- /rail-head -->
 
-    <!-- ════════ INSTANCES LIST (running only) ════════ -->
+    <!-- ════════ INSTANCES LIST ════════ -->
     @if (activeTab() === 'live') {
       @if (loadingLive()) {
         <div class="rail-center">
@@ -194,7 +200,6 @@
                     <div class="inst-dot-ring"></div>
                   </div>
                   <div class="inst-info">
-                    <!-- Barcode bold (primary), scanner ID below in small -->
                     <div class="inst-primary-row">
                       <span class="inst-barcode-bold">{{ inst.vars.barcode ?? '— no barcode —' }}</span>
                       <span class="inst-id">#{{ inst.dto.id }}</span>
@@ -245,7 +250,6 @@
                     (click)="selectHistoryEvent(ev)">
               <div class="hist-card-bar"></div>
               <div class="hist-card-inner">
-                <!-- Top: status icon + info + time -->
                 <div class="hist-top">
                   <div class="hist-status-icon"
                        [class.hsi-ok]="ev.execution_status === 'COMPLETED'"
@@ -263,7 +267,6 @@
                     }
                   </div>
                   <div class="hist-info">
-                    <!-- Barcode bold (primary), scanner ID small below -->
                     <div class="hist-primary-row">
                       <span class="hist-barcode-bold">{{ ev.barcode }}</span>
                       <span class="hist-id">#{{ ev.instance_id }}</span>
@@ -271,11 +274,7 @@
                   </div>
                   <span class="hist-time">{{ fmtTime(ev.scanned_at) }}</span>
                 </div>
-
-                <!-- Scanner ID — small, secondary line -->
                 <div class="hist-scanner-sub">{{ ev.scanner_id }}</div>
-
-                <!-- Bottom: badges + view hint -->
                 <div class="hist-bottom">
                   @if (ev.lane_name) {
                     <span class="badge-green">{{ ev.lane_name }}</span>
@@ -290,7 +289,6 @@
           }
         </div>
 
-        <!-- Pagination -->
         <div class="hist-pager">
           <button class="pager-btn" [disabled]="displayPage() === 0" (click)="historyPrev()">
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor"
@@ -336,7 +334,6 @@
       </div>
     }
 
-    <!-- ── Loading detail ── -->
     @if (loadingHDetail()) {
       <div class="detail-empty">
         <div class="dot-loader large"><span></span><span></span><span></span></div>
@@ -346,11 +343,9 @@
 
     @if (selectedInstance(); as inst) {
 
-      <!-- ══ DETAIL HEADER ══ -->
+      <!-- ══ DETAIL HEADER — fixed, never scrolls ══ -->
       <div class="detail-head">
         <div class="dh-left">
-
-          <!-- Status chip -->
           <div class="status-chip"
                [class.chip-running]="inst.dto.status === 'RUNNING'"
                [class.chip-done]="inst.dto.status === 'COMPLETED'"
@@ -372,16 +367,11 @@
           </div>
 
           <div class="dh-id">
-            <!-- <span class="dh-id-sub">def #{{ inst.dto.definitionId }}</span> -->
-            <span class="dh-id-num">#{{ inst.dto.id }}</span>
+            <span class="dh-id-num">{{ inst.vars.barcode ?? '—' }}</span>
+            <span class="dh-id-sub">{{ inst.vars.scanner_id ?? '' }}</span>
           </div>
 
           <div class="dh-sep"></div>
-
-          <div class="dh-field">
-            <span class="dh-field-key">Scanner</span>
-            <span class="dh-field-val">{{ inst.vars.scanner_id ?? '—' }}</span>
-          </div>
 
           <div class="dh-field">
             <span class="dh-field-key">Started</span>
@@ -406,7 +396,6 @@
           }
         </div>
 
-        <!-- Right side: timer + DETAIL-ONLY refresh + close -->
         <div class="dh-right">
           @if (inst.dto.status === 'RUNNING') {
             <div class="running-timer">
@@ -423,23 +412,16 @@
             </div>
           }
 
-          <!-- Refresh THIS instance detail only (does NOT refresh the list) -->
           <button class="icon-btn" title="Refresh this instance"
                   [class.icon-spinning]="refreshingDetail()"
                   (click)="refreshDetail()">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
               <polyline points="21 3 21 9 15 9"/>
             </svg>
           </button>
 
-          <!-- Close panel button -->
           <button class="icon-btn icon-btn-close" title="Close panel" (click)="closeDetail()">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
                  stroke-width="2.2" stroke-linecap="round">
@@ -449,13 +431,17 @@
         </div>
       </div>
 
-      <!-- ══ DETAIL BODY ══ -->
+      <!--
+        ══ DETAIL BODY — this is the scrollable region ══
+        overflow-y: auto here so ALL cards (package, outcome, execution path,
+        variables) scroll together as one unit when content exceeds screen height.
+        The variables pre block no longer needs its own max-height cap since the
+        whole panel scrolls.
+      -->
       <div class="detail-body">
 
-        <!-- Row 1: Package data + Outcome -->
+        <!-- Row 1: Package + Outcome -->
         <div class="row-two-col">
-
-          <!-- Package card -->
           <div class="card">
             <div class="card-head">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
@@ -489,7 +475,6 @@
             </div>
           </div>
 
-          <!-- Outcome card -->
           <div class="card outcome-card"
                [class.oc-running]="inst.dto.status === 'RUNNING'"
                [class.oc-done]="inst.dto.status === 'COMPLETED'"
@@ -525,7 +510,6 @@
                   <p class="oc-lane-sub">Final destination lane</p>
                 </div>
               } @else {
-                <!-- FAILED -->
                 <div class="oc-fail-state">
                   <div class="oc-fail-circle">
                     <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor"
@@ -549,22 +533,7 @@
           </div>
         </div>
 
-        <!--
-          ══ Execution Path ══
-          Step rendering rules:
-          ─────────────────────────────────────────────────────────
-          • Any step whose name contains "invalid" (case-insensitive)
-            → red ✗ node, regardless of its position in the path.
-            The connector BEFORE it turns red too.
-          • All other steps before the last → green ✓ (passed).
-          • Last step on RUNNING (and not invalid) → amber spinner.
-          • Last step on FAILED that is NOT "invalid" → red ✗
-            (generic failure, not a named-invalid step).
-          • Last step on COMPLETED → green ✓.
-          • finalLane step → ALWAYS green arrow (lane diversion always
-            succeeds, even when a validation step failed).
-          • Ghost "next step" shown when RUNNING.
-        -->
+        <!-- Execution Path -->
         <div class="card">
           <div class="card-head">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
@@ -588,54 +557,28 @@
             </div>
           } @else {
             <div class="path-steps">
-
               @for (step of inst.steps; track $index; let last = $last; let idx = $index) {
-
-                <!--
-                  Skip the finalLane step entirely — it will be rendered below
-                  as the dedicated green-arrow lane node. This prevents the lane
-                  from appearing twice (once red ✗ here, once green → below).
-                -->
                 @if (!isFinalLaneStep(step, inst.vars)) {
-
-                  <!--
-                    Connector BEFORE each non-lane step (except the first visible one).
-                    Turns red if the step it leads TO is invalid,
-                    OR if it's the last connector on a FAILED instance
-                    where that last step is not invalid (generic failure).
-                  -->
                   @if (idx > 0) {
                     <div class="step-conn"
                          [class.conn-fail]="isInvalidStep(step) || (last && inst.dto.status === 'FAILED' && !isInvalidStep(step))"></div>
                   }
-
-                  <!--
-                    Step state classes:
-                    • step-invalid  → red ✗ (step name contains "invalid")
-                    • step-done     → green ✓ (all passed / completed)
-                    • step-active   → amber spinner (last non-lane step, RUNNING)
-                    • step-failed   → red ✗ (last non-lane step, FAILED, not named invalid)
-                  -->
                   <div class="step"
                        [class.step-invalid]="isInvalidStep(step)"
                        [class.step-done]="!isInvalidStep(step) && (!last || inst.dto.status === 'COMPLETED')"
                        [class.step-active]="!isInvalidStep(step) && last && inst.dto.status === 'RUNNING'"
                        [class.step-failed]="!isInvalidStep(step) && last && inst.dto.status === 'FAILED'"
                        [style.--idx]="idx">
-
                     <div class="step-node">
                       @if (!isInvalidStep(step) && last && inst.dto.status === 'RUNNING') {
-                        <!-- Active: amber spinner -->
                         <div class="step-halo"></div>
                         <div class="step-spin-inner"></div>
                       } @else if (isInvalidStep(step) || (!isInvalidStep(step) && last && inst.dto.status === 'FAILED')) {
-                        <!-- Invalid step OR generic last-step failure: red ✗ -->
                         <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor"
                              stroke-width="2.5" stroke-linecap="round">
                           <path d="M1.5 1.5l8 8M9.5 1.5l-8 8"/>
                         </svg>
                       } @else {
-                        <!-- Passed / completed: green ✓ -->
                         <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor"
                              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M1.5 5.5l3 3 5-5.5"/>
@@ -644,11 +587,9 @@
                     </div>
                     <span class="step-label">{{ stepLabel(step) }}</span>
                   </div>
-
-                }<!-- /skip finalLane -->
+                }
               }
 
-              <!-- Ghost "next step" when still RUNNING -->
               @if (inst.dto.status === 'RUNNING' && inst.vars.nextStep) {
                 <div class="step-conn conn-ghost"></div>
                 <div class="step step-ghost">
@@ -659,13 +600,7 @@
                 </div>
               }
 
-              <!--
-                Final lane — ALWAYS green arrow, regardless of COMPLETED or FAILED.
-                Lane diversion succeeds even when a validation step failed.
-                Never gets a red cross.
-              -->
               @if ((inst.vars.finalLane ?? inst.vars.lane_name) && inst.dto.status !== 'RUNNING') {
-                <!-- Connector to lane is always green -->
                 <div class="step-conn"></div>
                 <div class="step step-lane">
                   <div class="step-node step-node-lane">
@@ -677,7 +612,6 @@
                   <span class="step-label step-label-lane">{{ inst.vars.finalLane ?? inst.vars.lane_name }}</span>
                 </div>
               }
-
             </div>
           }
         </div>
@@ -725,5 +659,7 @@
   </main>
 
 </div>
+
+
 
 

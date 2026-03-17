@@ -1,5 +1,9 @@
+aside {
+  padding: 10px;
+}
+
 /* ── Collapsed state ─────────────────────────────────────────── */
-.sidebar.is-collapsed { width: 0; border-right-color: transparent; }
+.sidebar.is-collapsed { width: 0; border-right-color: transparent; padding: 0;}
 
 .sidebar.is-collapsed .sidebar-text-block {
   opacity: 0;
@@ -32,6 +36,7 @@
 
 .nav-item {
   width: 100%;
+  padding: 5px;
 }
 
 .sidebar nav > div {

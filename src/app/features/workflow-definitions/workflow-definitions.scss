@@ -354,11 +354,11 @@
 /* ── Table Card ──────────────────────────────────────────────── */
 
 /* Grid columns */
-$grid: minmax(220px, 2.5fr)
-       minmax(120px, 1fr)
-       minmax(110px, 1fr)
-       minmax(120px, 1fr)
-       116px;
+$grid: minmax(180px, 2.5fr)
+       minmax(100px, 1fr)
+       minmax(90px, 1fr)
+       minmax(100px, 1fr)
+       100px;
 
 .table-card {
   /* !! DO NOT use overflow:hidden here — it will clip the dropdown.
@@ -955,5 +955,60 @@ mark {
   from { opacity: 0; transform: scale(0.94); }
   to   { opacity: 1; transform: scale(1); }
 }
+
+@media (max-width: 1024px) {
+  $grid-md: minmax(160px, 2fr) minmax(90px, 1fr) minmax(80px, 1fr) minmax(90px, 1fr) 90px;
+
+  .table-header,
+  .table-row {
+    grid-template-columns: $grid-md;
+    gap: 0.5rem;
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-header { display: none; }
+
+  .table-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "workflow actions"
+      "meta     meta";
+    gap: 6px;
+    padding: 12px 14px;
+    min-height: unset;
+  }
+
+  .td-workflow { grid-area: workflow; }
+  .td-actions  { grid-area: actions; align-self: start; }
+
+  // Merge version + status + date into the meta row
+  .td-version,
+  .td-status,
+  .td-date {
+    grid-area: meta;
+  }
+
+  // Since grid-area can only be set to one area per element,
+  // use flexbox on the row itself to inline them
+  .table-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    .td-workflow { flex: 1 1 calc(100% - 80px); min-width: 0; }
+    .td-actions  { flex: 0 0 auto; }
+    .td-version,
+    .td-status,
+    .td-date     {
+      flex: 0 0 auto;
+      margin-top: 6px;
+      margin-right: 10px;
+    }
+  }
+}
+
 
 

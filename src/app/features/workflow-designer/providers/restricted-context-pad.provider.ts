@@ -25,15 +25,25 @@ export class RestrictedContextPadProvider {
         )
         .forEach(k => delete entries[k]);
 
+      delete entries['append.intermediate-event'];
+      delete entries['append.end-event'];
+      delete entries['append.gateway'];
+      delete entries['append.append-task'];
+
       // ── Remove auto-append shortcuts (keep only explicit palette drags)
       Object.keys(entries)
-        .filter(k => k.startsWith('append'))
+        .filter(k => 
+          k.startsWith('append') ||
+          k.includes('intermediate') ||
+          k.includes('boundary')
+        )
         .forEach(k => delete entries[k]);
 
       return entries;
     };
   }
 }
+
 
 
 
