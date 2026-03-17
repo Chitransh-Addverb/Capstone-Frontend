@@ -67,28 +67,73 @@
 
         <div class="detail-divider"></div>
 
+        <!-- Mapped Scanners -->
+        <div class="detail-section">
+          <span class="detail-label">Mapped Scanners</span>
+
+          @if (loadingScanners()) {
+            <div class="scanners-loading">
+              <span class="wf-spinner"></span>
+              <span>Loading scanners…</span>
+            </div>
+          } @else if (mappedScanners().length === 0) {
+            <div class="scanners-empty">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
+                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M1 4V2a1 1 0 011-1h2M10 1h2a1 1 0 011 1v2
+                         M13 10v2a1 1 0 01-1 1h-2M4 13H2a1 1 0 01-1-1v-2"/>
+                <path d="M4 7h6"/>
+              </svg>
+              <span>No scanners mapped to this workflow version.</span>
+            </div>
+          } @else {
+            <div class="scanners-list">
+              @for (item of mappedScanners(); track item.scanner.scanner_id) {
+                <div class="scanner-chip">
+                  <div class="scanner-chip-dot"
+                       [class.scanner-chip-dot--on]="item.scanner.status">
+                  </div>
+                  <span class="scanner-chip-id">{{ item.scanner.scanner_id }}</span>
+                  <span class="scanner-chip-status">
+                    {{ item.scanner.status ? 'Online' : 'Offline' }}
+                  </span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="detail-divider"></div>
+
         <!-- BPMN XML Preview -->
         <div class="detail-section">
-          <span class="detail-label">BPMN XML</span>
+          <div class="xml-label-row">
+            <span class="detail-label">BPMN XML</span>
+            <button class="xml-copy-btn"
+                    [class.xml-copy-btn--copied]="xmlCopied()"
+                    (click)="copyXml()">
+              @if (xmlCopied()) {
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M1.5 6l3 3 6-6"/>
+                </svg>
+                Copied!
+              } @else {
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                     stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                  <rect x="4" y="4" width="7" height="7" rx="1.5"/>
+                  <path d="M8 4V3a1 1 0 00-1-1H3a1 1 0 00-1 1v4a1 1 0 001 1h1"/>
+                </svg>
+                Copy XML
+              }
+            </button>
+          </div>
           <div class="xml-block">
             <div class="xml-block-header">
               <span>workflow.bpmn</span>
               <span class="xml-size">{{ definition.bpmn_xml.length || 0 | number }} chars</span>
             </div>
             <pre class="xml-preview">{{ definition.bpmn_xml || 'No XML stored.' }}</pre>
-          </div>
-        </div>
-
-        <!-- Placeholder for scanner mapping -->
-        <div class="detail-section">
-          <span class="detail-label">Mapped Scanners</span>
-          <div class="placeholder-scanners">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M1 4V2a1 1 0 011-1h2M10 1h2a1 1 0 011 1v2M13 10v2a1 1 0 01-1 1h-2M4 13H2a1 1 0 01-1-1v-2"/>
-              <path d="M4 7h6"/>
-            </svg>
-            <span>Scanner mapping coming in Day 3</span>
           </div>
         </div>
 
@@ -102,3 +147,8 @@
     </div>
   </div>
 }
+
+
+
+
+
