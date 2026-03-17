@@ -157,6 +157,15 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
         }
       });
 
+      this.modeler.on('contextPad.open', () => {
+        requestAnimationFrame(() => {
+          document.querySelectorAll<HTMLElement>(
+            '.entry[data-action="append.intermediate-event"], ' +
+            '.bpmn-icon-intermediate-event-none'
+          ).forEach(el => el.remove());
+        });
+      });
+
       // ── Track unsaved changes ──────────────────────────────
       // commandStack.changed fires after every user edit
       eventBus.on('commandStack.changed', () => {
