@@ -3,6 +3,9 @@ import { environment } from '../../../environments/environment';
 export const API_BASE = environment.apiBase;
 
 export const API_ENDPOINTS = {
+  auth: {
+    login: 'mock/v1/auth/login',
+  },
   workflow: {
     deploy:           `${API_BASE}/workflows`,
     listByKey:        (workflowKey: string) => `${API_BASE}/workflows?workflowKey=${workflowKey}`,
@@ -37,6 +40,8 @@ export const API_ENDPOINTS = {
     list: `${API_BASE}/tenants`,
   },
 } as const;
+
+
 
 
 

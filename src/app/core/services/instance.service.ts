@@ -1,9 +1,10 @@
 import { Injectable, signal, computed } from '@angular/core';
 
 export interface InstanceSession {
-  tenantId: string;    // e.g. 'AMTA' — sent as instanceCode header to backend
-  username: string;    // display only (reserved for future backend use)
-  selectedAt: string;  // ISO timestamp
+  tenantId:   string;   // e.g. 'AMTA' — sent as instanceCode header to backend
+  username:   string;   // display only
+  role:       string;   // e.g. 'WAREHOUSE_SUPERVISOR' | 'WAREHOUSE_OPERATOR'
+  selectedAt: string;   // ISO timestamp
 }
 
 const SESSION_KEY = 'wos-instance-session';
@@ -17,7 +18,14 @@ export class InstanceService {
   session    = computed(() => this._session());
   tenantId   = computed(() => this._session()?.tenantId ?? null);
   username   = computed(() => this._session()?.username ?? null);
+  role       = computed(() => this._session()?.role ?? null);
   isReady    = computed(() => this._session() !== null);
+
+  /** True if the current user is a supervisor */
+  isSupervisor = computed(() => this._session()?.role === 'WAREHOUSE_SUPERVISOR');
+
+  /** True if the current user is an operator */
+  isOperator = computed(() => this._session()?.role === 'WAREHOUSE_OPERATOR');
 
   selectedAt = computed(() => {
     const s = this._session();
@@ -29,10 +37,11 @@ export class InstanceService {
   });
 
   /** Persist session to sessionStorage (tab-scoped — clears on tab close). */
-  setSession(tenantId: string, username: string): void {
+  setSession(tenantId: string, username: string, role: string): void {
     const session: InstanceSession = {
       tenantId,
       username,
+      role,
       selectedAt: new Date().toISOString(),
     };
     try {
@@ -61,4 +70,3 @@ export class InstanceService {
     }
   }
 }
-

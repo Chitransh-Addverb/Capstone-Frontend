@@ -19,7 +19,7 @@
       </div>
       <div class="brand-text">
         <span class="brand-name">WorkFlow Orchestrator</span>
-        <span class="brand-sub">Multi-tenant Warehouse Management</span>
+        <span class="brand-sub">Warehouse Management System</span>
       </div>
     </div>
 
@@ -28,19 +28,18 @@
 
       <!-- Hero -->
       <div class="card-hero">
-        <h1 class="hero-title">Select Your Instance</h1>
-        <p class="hero-desc">Choose a warehouse instance to begin. Your session will be scoped to this instance.</p>
+        <h1 class="hero-title">Welcome! Please Sign In</h1>
+        <p class="hero-desc">
+          Type your name below and tap <strong>"Show My Warehouses"</strong>.
+          We will find your details automatically.
+        </p>
       </div>
 
-      <!-- Username Field -->
+      <!-- Step 1: Username -->
       <div class="field-group">
         <label class="field-label">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
-               stroke-width="1.5" stroke-linecap="round">
-            <circle cx="7" cy="5" r="3"/>
-            <path d="M1.5 12.5a5.5 5.5 0 0111 0"/>
-          </svg>
-          Username
+          <span class="step-badge">1</span>
+          Your Name
         </label>
         <div class="input-row">
           @if (avatarLetter) {
@@ -51,7 +50,7 @@
             [class.has-avatar]="!!avatarLetter"
             [class.input-error]="!!usernameError()"
             type="text"
-            placeholder="Enter your username…"
+            placeholder="Type your name here…"
             [ngModel]="username()"
             (ngModelChange)="onUsernameChange($event)"
             autocomplete="off"
@@ -59,7 +58,7 @@
         </div>
         @if (usernameError()) {
           <span class="field-error">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
+            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor"
                  stroke-width="1.5" stroke-linecap="round">
               <circle cx="6" cy="6" r="5"/><path d="M6 4v2.5M6 8h.01"/>
             </svg>
@@ -68,147 +67,133 @@
         }
       </div>
 
-      <!-- Instance Cards -->
-      <div class="field-group">
-        <label class="field-label">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
-               stroke-width="1.5" stroke-linecap="round">
-            <rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/>
-            <rect x="4.5" y="8" width="5" height="5" rx="1"/>
+      <!-- Fetch button -->
+      <button
+        class="fetch-btn"
+        [disabled]="!canFetch() || fetchingWarehouses()"
+        (click)="fetchWarehouses()"
+        type="button">
+        @if (fetchingWarehouses()) {
+          <span class="btn-spinner"></span>
+          Looking up your details…
+        } @else {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
           </svg>
-          Warehouse Instance
-        </label>
+          Show My Warehouses
+        }
+      </button>
 
-        <!-- ── Search (visible when tenants > 3) ──────────────── -->
-        @if (showSearch()) {
-          <div class="search-row">
-            <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"
-                 stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-              <circle cx="6" cy="6" r="4.5"/>
-              <path d="M9.5 9.5L12.5 12.5"/>
-            </svg>
-            <input
-              class="search-input"
-              type="text"
-              placeholder="Search instances…"
-              [ngModel]="searchQuery()"
-              (ngModelChange)="onSearchChange($event)"
-              autocomplete="off"
-            />
-            @if (searchQuery()) {
-              <button class="search-clear" (click)="clearSearch()" type="button">
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
-                     stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <path d="M2 2l8 8M10 2L2 10"/>
-                </svg>
-              </button>
+      <!-- API Error -->
+      @if (fetchError()) {
+        <div class="fetch-error-banner">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+               stroke-width="1.6" stroke-linecap="round" flex-shrink="0">
+            <circle cx="10" cy="10" r="8.5"/><path d="M10 6.5v4M10 13h.01"/>
+          </svg>
+          <div class="fetch-error-text">
+            <span class="fetch-error-title">{{ fetchError() }}</span>
+          </div>
+        </div>
+      }
+
+      <!-- Step 2: Results — role badge + warehouse selection -->
+      @if (warehouses().length > 0) {
+
+        <!-- Role badge (read-only, from backend) -->
+        <div class="role-result-row">
+          <span class="role-result-label">Your Job Role</span>
+          <div class="role-badge" [class.is-supervisor]="fetchedRole() === 'WAREHOUSE_SUPERVISOR'">
+            @if (fetchedRole() === 'WAREHOUSE_SUPERVISOR') {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            } @else {
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2"/>
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+              </svg>
             }
+            {{ roleLabel }}
           </div>
-        }
+        </div>
 
-        <!-- ── Loading state ──────────────────────────────────── -->
-        @if (loading()) {
-          <div class="instance-loading">
-            <div class="loading-spinner"></div>
-            <span>Loading instances…</span>
-          </div>
-        }
+        <!-- Warehouse cards -->
+        <div class="field-group warehouse-section">
+          <label class="field-label">
+            <span class="step-badge success">2</span>
+            Pick Your Warehouse
+          </label>
+          <p class="warehouse-hint">
+            We found {{ warehouses().length }} warehouse{{ warehouses().length > 1 ? 's' : '' }} for you.
+            Tap one to choose it.
+          </p>
 
-        <!-- ── Error state ────────────────────────────────────── -->
-        @else if (loadError()) {
-          <div class="instance-error">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <circle cx="10" cy="10" r="8.5"/>
-              <path d="M10 6.5v4M10 13h.01"/>
-            </svg>
-            <div class="instance-error-text">
-              <span class="instance-error-title">Failed to load instances</span>
-              <span class="instance-error-sub">Could not connect to the server</span>
-            </div>
-            <button class="retry-btn" (click)="retry()" type="button">Retry</button>
-          </div>
-        }
-
-        <!-- ── Tenant cards ───────────────────────────────────── -->
-        @else {
           <div class="instance-grid">
-            @for (tid of filteredTenants(); track tid) {
+            @for (tid of warehouses(); track tid) {
               <button
                 class="instance-card"
                 [class.selected]="selectedInstance() === tid"
                 (click)="selectInstance(tid)"
-              >
+                type="button">
                 <div class="instance-icon" [style.background]="getGradient(tid)">
                   {{ tid.charAt(0) }}
                 </div>
                 <div class="instance-info">
                   <span class="instance-name">{{ tid }}</span>
-                  <span class="instance-sub">Warehouse instance</span>
+                  <span class="instance-sub">Warehouse</span>
                 </div>
                 @if (selectedInstance() === tid) {
                   <div class="instance-check">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <svg width="13" height="13" viewBox="0 0 12 12" fill="none"
+                         stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
                       <path d="M2 6l2.5 2.5L10 3"/>
                     </svg>
                   </div>
                 }
               </button>
             }
-
-            <!-- Empty search result -->
-            @if (filteredTenants().length === 0 && searchQuery()) {
-              <div class="instance-empty">
-                <svg width="28" height="28" viewBox="0 0 28 28" fill="none"
-                     stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
-                  <circle cx="12.5" cy="12.5" r="8"/>
-                  <path d="M19 19L24 24"/>
-                  <path d="M10 12.5h5M12.5 10v5"/>
-                </svg>
-                <span>No instances match "<strong>{{ searchQuery() }}</strong>"</span>
-                <button class="clear-search-link" (click)="clearSearch()" type="button">Clear search</button>
-              </div>
-            }
           </div>
-        }
+        </div>
 
-      </div>
-
-      <!-- Session Info -->
-      <div class="session-info">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor"
-             stroke-width="1.5" stroke-linecap="round">
-          <circle cx="6.5" cy="6.5" r="5.5"/><path d="M6.5 4.5v3M6.5 9h.01"/>
-        </svg>
-        Session is tab-scoped — closing this tab will require re-selecting your instance.
-      </div>
-
-      <!-- Confirm Button -->
-      <button
-        class="confirm-btn"
-        [disabled]="!canConfirm() || confirming()"
-        (click)="confirm()"
-      >
-        @if (confirming()) {
-          <span class="btn-spinner"></span>
-          Connecting…
-        } @else {
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-               stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
-            <path d="M13 8l-5-5v3C4 6.5 2 9 2 13c1.5-2 3.5-3 6-3v3l5-5z"/>
+        <!-- Session Info -->
+        <div class="session-info">
+          <svg width="14" height="14" viewBox="0 0 13 13" fill="none" stroke="currentColor"
+               stroke-width="1.5" stroke-linecap="round">
+            <circle cx="6.5" cy="6.5" r="5.5"/><path d="M6.5 4.5v3M6.5 9h.01"/>
           </svg>
-          Enter Instance
-        }
-      </button>
+          Your login will end when you close this browser tab. You will need to sign in again next time.
+        </div>
+
+        <!-- Enter button -->
+        <button
+          class="confirm-btn"
+          [disabled]="!canConfirm() || confirming()"
+          (click)="confirm()"
+          type="button">
+          @if (confirming()) {
+            <span class="btn-spinner"></span>
+            Opening…
+          } @else {
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+              <path d="M13 8l-5-5v3C4 6.5 2 9 2 13c1.5-2 3.5-3 6-3v3l5-5z"/>
+            </svg>
+            Enter Warehouse
+          }
+        </button>
+      }
 
     </div>
   </div>
 
-  <p class="bottom-brand">Workflow Orchestration System · Multi-Tenant Edition</p>
+  <p class="bottom-brand">Workflow Orchestration System · Warehouse Management</p>
 
 </div>
-
-
-
-
