@@ -2,158 +2,102 @@
   class="designer-shell flex h-[calc(100vh-var(--topbar-height)-56px)] flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--surface-base)] shadow-[var(--shadow-md)]"
 >
   <!-- Header -->
-  <div
-    class="designer-header flex shrink-0 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--surface-raised)] px-5 py-[14px]"
-  >
+  <div class="designer-header flex shrink-0 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--surface-raised)] px-5 py-[14px]">
     <div class="header-left flex items-center gap-3">
-      <div
-        class="header-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-subtle)] text-[var(--accent-primary)]"
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 18 18"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <rect x="1" y="1" width="6" height="6" rx="1.5" />
-          <rect x="11" y="1" width="6" height="6" rx="1.5" />
-          <rect x="6" y="11" width="6" height="6" rx="1.5" />
-          <path d="M4 7v2.5a2.5 2.5 0 002.5 2.5h1M14 7v1a2.5 2.5 0 01-2.5 2.5H11" />
+      <div class="header-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-subtle)] text-[var(--accent-primary)]">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="1" width="7" height="7" rx="1.5"/>
+          <rect x="12" y="1" width="7" height="7" rx="1.5"/>
+          <rect x="6.5" y="12" width="7" height="7" rx="1.5"/>
+          <path d="M4.5 8v3a3 3 0 003 3h1M15.5 8v1a3 3 0 01-3 3H12"/>
         </svg>
       </div>
-      <div class="header-text">
-        <div class="header-title-row flex items-center gap-2.5">
-          <h1
-            class="header-title text-[0.9375rem] font-semibold tracking-[-0.02em] text-[var(--text-primary)]"
-          >
-            {{ isEditMode() ? 'Edit Workflow' : 'Workflow Designer' }}
+      <div>
+        <div class="header-title-row flex items-center gap-2.5 flex-wrap">
+          <h1 class="header-title">
+            {{ isEditMode() ? 'Edit Workflow' : 'Build a Workflow' }}
           </h1>
           @if (isEditMode()) {
             <span class="edit-badge">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 10 10"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-              >
-                <path d="M7 1l2 2-5 5H2V6l5-5z" />
-              </svg>
-              Editing · {{ editKey() }} · v{{ nextVersion() - 1 }} → v{{ nextVersion() }}
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 1l2 2-5 5H2V6l5-5z"/></svg>
+              Editing · {{ editKey() }} · Version {{ nextVersion() - 1 }} → {{ nextVersion() }}
             </span>
           }
           @if (hasUnsavedChanges()) {
-            <span
-              class="unsaved-badge inline-flex items-center gap-[5px] rounded-[var(--radius-full)] border border-[rgba(234,179,8,0.3)] bg-[rgba(234,179,8,0.12)] px-2 py-0.5 text-[0.6875rem] font-medium text-[var(--status-warning,#ca8a04)]"
-            >
-              <span class="unsaved-dot h-[5px] w-[5px] shrink-0 rounded-full bg-current"></span>
-              Unsaved changes
+            <span class="unsaved-badge">
+              <span class="unsaved-dot"></span>
+              Not saved yet
             </span>
           }
         </div>
-        <p class="header-subtitle mt-px text-[0.7rem] text-[var(--text-tertiary)]">
-          BPMN 2.0 visual workflow editor
-        </p>
+        <p class="header-subtitle">Drag items onto the drawing area, connect them, and set Pass / Fail for each check</p>
       </div>
     </div>
+
     <div class="header-actions flex items-center gap-1.5">
-      <!-- Reset — now calls openResetConfirm() instead of resetDiagram() -->
       <button class="btn btn-ghost btn-sm" (click)="openResetConfirm()">
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-          <polyline points="21 3 21 9 15 9" />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+          <polyline points="21 3 21 9 15 9"/>
         </svg>
         Reset
       </button>
 
       <button class="btn btn-ghost btn-sm" (click)="zoomFit()">
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 13 13"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-        >
-          <path d="M1 5V1h4M12 5V1H8M1 8v4h4M12 8v4H8" />
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 5V1h4M13 5V1H9M1 9v4h4M13 9v4H9"/>
         </svg>
-        Fit
+        Fit on Screen
       </button>
 
       <button class="btn btn-secondary btn-sm" (click)="exportXml()">
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 13 13"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-        >
-          <path d="M6.5 1v8M3 6l3.5 3.5L10 6M1 11h11" />
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M7 1v9M3.5 7L7 10.5 10.5 7M1 12h12"/>
         </svg>
-        Export XML
+        Download
       </button>
 
       <button class="btn btn-primary btn-sm" (click)="openDeployModal()">
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 13 13"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-        >
-          <path d="M10.5 6.5l-7-4v8l7-4z" />
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M2 7l4 4 6-6"/>
         </svg>
-        {{ isEditMode() ? 'Deploy v' + nextVersion() : 'Deploy' }}
+        {{ isEditMode() ? 'Save — Version ' + nextVersion() : 'Save Workflow' }}
       </button>
     </div>
   </div>
 
-  <!-- Canvas + Properties Panel row -->
+  <!-- Canvas + Properties Panel -->
   <div class="canvas-with-panel flex flex-1 overflow-hidden">
-    <!-- Canvas -->
-    <div class="canvas-container relative flex-1 overflow-hidden bg-[var(--surface-ground)]">
+
+    <div class="canvas-container relative flex-1 overflow-hidden">
+
       @if (loading()) {
-        <div
-          class="canvas-loading absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[var(--surface-ground)] text-[0.8125rem] text-[var(--text-tertiary)]"
-        >
-          <div
-            class="loading-spinner h-7 w-7 rounded-full border-2 border-[var(--border-default)] border-t-[var(--accent-primary)]"
-          ></div>
-          <span>Initializing BPMN Engine...</span>
+        <div class="canvas-loading absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
+          <div class="loading-spinner"></div>
+          <span>Loading, please wait…</span>
         </div>
       }
+
+      @if (!loading()) {
+        <div class="quick-help">
+          <p class="quick-help-title">
+            📋 How to build your workflow — step by step
+          </p>
+          <p class="quick-help-body">
+            <span class="step-pill step-start">① Starting Point</span> is already placed — that's where items arrive.
+            &nbsp;Drag a&nbsp;<span class="step-pill step-task">② Check Step</span> and draw an arrow to it.
+            &nbsp;Then draw <strong>2 arrows</strong> out of the Check Step — one for&nbsp;<span class="step-pill step-pass">✓ Pass</span>
+            &nbsp;and one for&nbsp;<span class="step-pill step-fail">✗ Fail</span> — each going to an&nbsp;<span class="step-pill step-end">③ End Point</span>.
+            &nbsp;Click on any item to set it up in the panel on the right.
+          </p>
+        </div>
+      }
+
       <div
         #bpmnCanvas
         class="bpmn-canvas h-full w-full opacity-0 transition-opacity duration-[var(--transition-base)]"
         [class.visible]="!loading()"
       ></div>
-      @if (!loading()) {
-        <div
-          class="canvas-watermark pointer-events-none absolute bottom-3 right-4 font-[var(--font-mono)] text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-tertiary)] opacity-40"
-        >
-          BPMN 2.0
-        </div>
-      }
     </div>
 
     <!-- Properties Panel -->
@@ -168,48 +112,36 @@
   </div>
 
   <!-- Status bar -->
-  <div
-    class="status-bar flex shrink-0 items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--surface-raised)] px-4 py-1.5"
-  >
+  <div class="status-bar flex shrink-0 items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--surface-raised)] px-4 py-1.5">
     <div class="status-left flex items-center gap-2">
-      <!-- <span class="status-item">
-        <span class="status-indicator online"></span>
-        Ready
-      </span>
-      <span class="status-divider">·</span>
-      <span class="status-item">{{ elementCount() }} elements</span> -->
       @if (isEditMode()) {
-        <span class="status-divider">·</span>
-        <span class="status-item edit-mode-indicator"> Edit Mode — {{ editKey() }} </span>
+        <span class="status-item edit-mode-indicator">Editing: {{ editKey() }}</span>
       }
       @if (hasUnsavedChanges()) {
-        <span class="status-divider">·</span>
-        <span
-          class="status-item unsaved-status flex items-center gap-1 text-[var(--status-warning,#ca8a04)]"
-        >
-          <span
-            class="unsaved-status-dot h-[5px] w-[5px] shrink-0 rounded-full bg-[var(--status-warning,#ca8a04)]"
-          ></span>
-          Not deployed
+        @if (isEditMode()) { <span class="status-divider">·</span> }
+        <span class="status-item unsaved-status">
+          <span class="unsaved-status-dot"></span>
+          Changes not saved yet
         </span>
       }
       @if (selectedElement()) {
         <span class="status-divider">·</span>
         <span class="status-item">
           <span style="color: var(--accent-primary)">●</span>
-          {{ selectedElement()?.type?.replace('bpmn:', '') }} selected
+          {{ selectedElement()?.type === 'bpmn:Task'         ? 'Check Step selected'
+           : selectedElement()?.type === 'bpmn:EndEvent'     ? 'End Point selected'
+           : selectedElement()?.type === 'bpmn:SequenceFlow' ? 'Arrow selected'
+           : 'Item selected' }}
         </span>
       }
     </div>
     <div class="status-right flex items-center gap-2">
-      <span class="status-item text-mono">BPMN 2.0 Subset</span>
-      <span class="status-divider">·</span>
-      <span class="status-item">bpmn-js v18</span>
+      <span class="status-item">Workflow Builder</span>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════ DEPLOY MODAL ══════════════════ -->
+<!-- ══════════════ SAVE MODAL ══════════════ -->
 <app-deploy-modal
   [visible]="showDeployModal()"
   [bpmn_xml]="currentXml()"
@@ -222,7 +154,7 @@
   (cancel)="onDeployCancel()"
 />
 
-<!-- ══════════════════ VALIDATION MODAL ══════════════════ -->
+<!-- ══════════════ ERRORS MODAL ══════════════ -->
 <app-validation-modal
   [visible]="showValidationModal()"
   [errors]="validationErrors()"
@@ -230,65 +162,30 @@
   (close)="onValidationModalClose()"
 />
 
-<!-- ══════════════════ RESET CONFIRM MODAL ══════════════════ -->
+<!-- ══════════════ RESET CONFIRM ══════════════ -->
 @if (showResetConfirm()) {
-  <div
-    class="designer-modal-backdrop fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-5"
-    (click)="cancelReset()"
-  >
-    <div
-      class="designer-confirm-modal flex w-[400px] max-w-full flex-col items-center rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--surface-base)] px-7 pb-6 pt-8 text-center"
-      (click)="$event.stopPropagation()"
-    >
-      <div
-        class="dcm-icon dcm-icon--warning mb-4 flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full"
-      >
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-          <polyline points="21 3 21 9 15 9" />
+  <div class="designer-modal-backdrop fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-5" (click)="cancelReset()">
+    <div class="designer-confirm-modal flex w-[420px] max-w-full flex-col items-center rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--surface-base)] px-8 pb-7 pt-9 text-center" (click)="$event.stopPropagation()">
+      <div class="dcm-icon dcm-icon--warning mb-5">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+          <polyline points="21 3 21 9 15 9"/>
         </svg>
       </div>
-
-      <h3
-        class="dcm-title m-0 mb-2.5 text-base font-bold tracking-[-0.02em] text-[var(--text-primary)]"
-      >
-        Reset Diagram?
-      </h3>
-      <p class="dcm-desc m-0 mb-6 text-[0.8125rem] leading-[1.6] text-[var(--text-secondary)]">
+      <h3 class="dcm-title">Reset?</h3>
+      <p class="dcm-desc">
         @if (isEditMode()) {
-          This will discard all unsaved edits and reload
-          <strong>{{ editKey() }} v{{ nextVersion() - 1 }}</strong>
-          from the server. This cannot be undone.
+          This will undo all your changes and reload the last saved version of <strong>{{ editKey() }}</strong>.
         } @else {
-          This will clear the entire canvas and start a fresh blank diagram. All unsaved work will
-          be lost.
+          This will clear everything on the screen. Any work you have done will be lost.
         }
       </p>
-
-      <div class="dcm-actions flex w-full items-center justify-center gap-2.5">
-        <button class="btn btn-ghost" (click)="cancelReset()">Keep editing</button>
+      <div class="dcm-actions flex w-full items-center justify-center gap-3">
+        <button class="btn btn-ghost" (click)="cancelReset()">No, keep editing</button>
         <button class="btn btn-warning" (click)="confirmReset()">
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-            <polyline points="21 3 21 9 15 9" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+            <polyline points="21 3 21 9 15 9"/>
           </svg>
           Yes, reset
         </button>
@@ -297,56 +194,25 @@
   </div>
 }
 
-<!-- ══════════════════ LEAVE CONFIRM MODAL ══════════════════ -->
+<!-- ══════════════ LEAVE WITHOUT SAVING ══════════════ -->
 @if (showLeaveConfirm()) {
-  <div
-    class="designer-modal-backdrop fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-5"
-    (click)="cancelLeave()"
-  >
-    <div
-      class="designer-confirm-modal flex w-[400px] max-w-full flex-col items-center rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--surface-base)] px-7 pb-6 pt-8 text-center"
-      (click)="$event.stopPropagation()"
-    >
-      <div
-        class="dcm-icon dcm-icon--danger mb-4 flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full"
-      >
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 22 22"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-        >
-          <path d="M11 8v5M11 15v1" />
-          <path d="M9.3 3l-8 14a2 2 0 001.7 3h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z" />
+  <div class="designer-modal-backdrop fixed inset-0 z-[500] flex items-center justify-center bg-black/55 p-5" (click)="cancelLeave()">
+    <div class="designer-confirm-modal flex w-[420px] max-w-full flex-col items-center rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--surface-base)] px-8 pb-7 pt-9 text-center" (click)="$event.stopPropagation()">
+      <div class="dcm-icon dcm-icon--danger mb-5">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M12 9v5M12 16v1"/>
+          <path d="M10.3 3.5l-9 16A2 2 0 003.2 22h17.6a2 2 0 001.9-2.5l-9-16a2 2 0 00-3.4 0z"/>
         </svg>
       </div>
-
-      <h3
-        class="dcm-title m-0 mb-2.5 text-base font-bold tracking-[-0.02em] text-[var(--text-primary)]"
-      >
-        Leave without deploying?
-      </h3>
-      <p class="dcm-desc m-0 mb-6 text-[0.8125rem] leading-[1.6] text-[var(--text-secondary)]">
-        Your workflow has unsaved changes that have
-        <strong>not been deployed</strong>. If you leave now, all changes will be permanently lost.
+      <h3 class="dcm-title">Leave without saving?</h3>
+      <p class="dcm-desc">
+        You have made changes that have <strong>not been saved</strong> yet. If you leave now, your work will be lost.
       </p>
-
-      <div class="dcm-actions flex w-full items-center justify-center gap-2.5">
-        <button class="btn btn-ghost" (click)="cancelLeave()">Stay &amp; keep editing</button>
+      <div class="dcm-actions flex w-full items-center justify-center gap-3">
+        <button class="btn btn-ghost" (click)="cancelLeave()">Stay here</button>
         <button class="btn btn-danger" (click)="confirmLeave()">
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 14 14"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <path d="M1 1l12 12M13 1L1 13" />
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M1 1l12 12M13 1L1 13"/>
           </svg>
           Leave anyway
         </button>
@@ -354,6 +220,3 @@
     </div>
   </div>
 }
-
-
-

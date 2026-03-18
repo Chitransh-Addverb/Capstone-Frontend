@@ -6,26 +6,27 @@
       <div class="modal-header">
         <div class="modal-header-left">
           <div class="modal-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M10.5 6.5l-7-4v8l7-4z"/>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 2v10M10 2L6 6M10 2l4 4"/>
+              <path d="M2 14h16v3a1 1 0 01-1 1H3a1 1 0 01-1-1v-3z"/>
             </svg>
           </div>
           <div>
             <h2 class="modal-title">
-              {{ editMode ? 'Update Workflow' : 'Deploy Workflow' }}
+              {{ editMode ? '💾 Save Updated Workflow' : '💾 Save This Workflow' }}
             </h2>
             <p class="modal-subtitle">
               {{ editMode
-                ? 'Deploy updated BPMN — will create version v' + nextVersion
-                : 'Send BPMN workflow to the engine'
+                ? 'Your changes will be saved as a new version.'
+                : 'Give this workflow a name so you can find and use it later.'
               }}
             </p>
           </div>
         </div>
         <button class="modal-close" (click)="onCancel()" [disabled]="deploying()">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-               stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M1 1l12 12M13 1L1 13"/>
           </svg>
         </button>
@@ -34,136 +35,100 @@
       <!-- Body -->
       <div class="modal-body">
 
-        <!-- Version banner (edit mode only) -->
+        <!-- Version info banner (edit mode only) -->
         @if (editMode) {
           <div class="version-banner">
-            <div class="version-banner-left">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
-                   stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                <path d="M6.5 1v11M1 6.5h11"/>
-              </svg>
-              <span>New version will be created</span>
-            </div>
+            <span class="version-banner-text">📋 A new version will be created</span>
             <div class="version-tags">
-              <span class="version-tag old">v{{ nextVersion - 1 }}</span>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+              <span class="version-tag old">Version {{ nextVersion - 1 }}</span>
+              <svg width="18" height="12" viewBox="0 0 18 12" fill="none"
                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                <path d="M2 6h8M7 3l3 3-3 3"/>
+                <path d="M1 6h15M12 2l5 4-5 4"/>
               </svg>
-              <span class="version-tag new">v{{ nextVersion }}</span>
+              <span class="version-tag new">Version {{ nextVersion }}</span>
             </div>
           </div>
         }
 
-        <!-- Workflow Key -->
+        <!-- Workflow Name field -->
         <div class="form-group">
           <label class="form-label">
-            Workflow Key
+            Workflow Name
             <span class="form-required">*</span>
           </label>
+
           @if (editMode) {
-            <!-- Locked in edit mode -->
+            <!-- Locked — cannot change name when updating -->
             <div class="locked-input">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                <rect x="2" y="5" width="8" height="6" rx="1"/>
-                <path d="M4 5V3.5a2 2 0 014 0V5"/>
+                <rect x="3" y="6" width="8" height="7" rx="1"/>
+                <path d="M5 6V4.5a2.5 2.5 0 015 0V6"/>
               </svg>
               <span>{{ form.workflow_key }}</span>
             </div>
-            <span class="form-hint">Key is locked for updates — same key, new version</span>
+            <span class="form-hint">The name stays the same — only the version number increases.</span>
+
           } @else {
             <input
               class="form-input"
               [class.form-input-error]="keyError() || duplicateKeyError()"
               type="text"
-              placeholder="e.g. scanner-1-workflow"
+              placeholder="Example:  scanner-1-workflow"
               [value]="form.workflow_key"
               (input)="onKeyChange($any($event.target).value)"
               [disabled]="deploying()"
+              autocomplete="off"
             />
 
-            <!-- Format validation error -->
             @if (keyError()) {
-              <span class="form-error">
-                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"
-                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <circle cx="5.5" cy="5.5" r="4.5"/>
-                  <path d="M5.5 3.5v2M5.5 7v.5"/>
-                </svg>
-                {{ keyError() }}
-              </span>
-            }
-
-            <!-- ── Duplicate key warning ──────────────────────────────── -->
-            @else if (duplicateKeyError()) {
+              <span class="form-error">⚠ {{ keyError() }}</span>
+            } @else if (duplicateKeyError()) {
               <div class="duplicate-warn">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-                     stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-                     class="duplicate-warn-icon">
-                  <path d="M7 1.5L13.5 12.5H0.5L7 1.5z"/>
-                  <path d="M7 5.5v3M7 10v.5"/>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                     stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
+                  <path d="M8 1.5L15 14.5H1L8 1.5z"/>
+                  <path d="M8 6.5v4M8 12h.01"/>
                 </svg>
                 <div>
-                  <p class="duplicate-warn-title">Workflow key already exists</p>
+                  <p class="duplicate-warn-title">⚠ This name is already taken</p>
                   <p class="duplicate-warn-body">{{ duplicateKeyError() }}</p>
                 </div>
               </div>
-            }
-
-            @else {
+            } @else {
               <span class="form-hint">
-                Alphanumeric, hyphens and underscores — e.g. <code>scanner-1-workflow</code>
+                Use letters, numbers, and dashes only — no spaces.<br>
+                Example: <code>scanner-1-workflow</code>
               </span>
             }
           }
         </div>
 
-        <!-- Description -->
+        <!-- Notes field -->
         <div class="form-group">
           <label class="form-label">
             Description
-            <span class="form-optional">(optional)</span>
           </label>
           <textarea
             class="form-input form-textarea"
-            placeholder="Describe what this workflow does..."
+            placeholder="Write anything you want to remember about this workflow…"
             [(ngModel)]="form.description"
             [disabled]="deploying()"
             rows="3"
           ></textarea>
+          <span class="form-hint">You can leave this empty if you want.</span>
         </div>
 
-        <!-- XML Status -->
-        <div class="xml-preview">
-          <div class="xml-preview-left">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M3 3L1 6l2 3M9 3l2 3-2 3M7 1L5 11"/>
+        <!-- Ready indicator -->
+        @if (isValid()) {
+          <div class="ready-indicator">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M2 8l5 5 7-8"/>
             </svg>
-            <span>BPMN XML ready</span>
+            <span>Ready to save — tap the button below</span>
           </div>
-          <span class="xml-size">{{ bpmn_xml.length | number }} chars</span>
-        </div>
-
-        <!-- Payload preview -->
-        <div class="payload-preview">
-          <div class="payload-header">
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M1 3h9M1 6h9M1 9h5"/>
-            </svg>
-            POST /api/workflow/deploy
-          </div>
-          <div class="payload-body">
-            <span class="payload-key">workflow_key:</span>
-            <span class="payload-val">{{ form.workflow_key || '—' }}</span>
-            <span class="payload-key">description:</span>
-            <span class="payload-val">{{ form.description || '—' }}</span>
-            <span class="payload-key">bpmn_xml:</span>
-            <span class="payload-val">{{ bpmn_xml.length }} chars</span>
-          </div>
-        </div>
+        }
 
       </div>
 
@@ -179,13 +144,13 @@
         >
           @if (deploying()) {
             <span class="btn-spinner"></span>
-            Deploying...
+            Saving…
           } @else {
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
-                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M10.5 6.5l-7-4v8l7-4z"/>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M2 7.5l4.5 4.5 6.5-7"/>
             </svg>
-            {{ editMode ? 'Deploy v' + nextVersion : 'Deploy to Engine' }}
+            {{ editMode ? 'Save as Version ' + nextVersion : 'Save Workflow' }}
           }
         </button>
       </div>
@@ -193,7 +158,3 @@
     </div>
   </div>
 }
-
-
-
-

@@ -15,8 +15,8 @@ export interface ValidationResult {
 const SUPPORTED_TYPES = new Set([
   'bpmn:StartEvent',
   'bpmn:EndEvent',
-  'bpmn:ServiceTask',
-  'bpmn:ExclusiveGateway',
+  'bpmn:Task',
+  'bpmn:ExclusiveGateway', // still valid in XML / imported diagrams
   'bpmn:SequenceFlow',
   'bpmn:Process',
   'bpmn:Definitions',
@@ -31,269 +31,199 @@ export class BpmnCanvasValidator {
     const elementRegistry = modeler.get('elementRegistry');
     const elements = elementRegistry.getAll();
 
-    // Separate by type
-    const startEvents  = elements.filter((el: any) => el.type === 'bpmn:StartEvent');
-    const endEvents    = elements.filter((el: any) => el.type === 'bpmn:EndEvent');
-    const serviceTasks = elements.filter((el: any) => el.type === 'bpmn:ServiceTask');
-    const gateways     = elements.filter((el: any) => el.type === 'bpmn:ExclusiveGateway');
-    const flows        = elements.filter((el: any) => el.type === 'bpmn:SequenceFlow');
-    const shapes       = elements.filter((el: any) =>
+    const startEvents = elements.filter((el: any) => el.type === 'bpmn:StartEvent');
+    const endEvents   = elements.filter((el: any) => el.type === 'bpmn:EndEvent');
+    const tasks       = elements.filter((el: any) => el.type === 'bpmn:Task');
+    const flows       = elements.filter((el: any) => el.type === 'bpmn:SequenceFlow');
+    const shapes      = elements.filter((el: any) =>
       el.type !== 'bpmn:SequenceFlow' &&
       el.type !== 'label' &&
       el.type !== 'bpmn:Process' &&
       el.type !== '__implicitroot'
     );
 
-    // ── Rule 1: Exactly one Start Event ─────────────────────────────────────
+    // ── Rule 1: Exactly one Trigger ───────────────────────────────────────────
     if (startEvents.length === 0) {
       errors.push({
         elementId: null, elementName: null,
         rule: 'MISSING_START_EVENT',
-        message: 'Workflow must have exactly one Start Event.',
+        message: 'Your workflow has no Trigger. Add a Trigger (the circle shape) to show where it starts.',
         severity: 'error',
       });
     } else if (startEvents.length > 1) {
       errors.push({
         elementId: null, elementName: null,
         rule: 'MULTIPLE_START_EVENTS',
-        message: `Found ${startEvents.length} Start Events. Only one is allowed.`,
+        message: `You have ${startEvents.length} Triggers. A workflow can only have one starting point. Remove the extra ones.`,
         severity: 'error',
       });
     }
 
-    // ── Rule 2: At least one End Event ──────────────────────────────────────
+    // ── Rule 2: At least one Endpoint ─────────────────────────────────────────
     if (endEvents.length === 0) {
       errors.push({
         elementId: null, elementName: null,
         rule: 'MISSING_END_EVENT',
-        message: 'Workflow must have at least one End Event.',
+        message: 'Your workflow has no Endpoint. Add at least one Endpoint (the thick circle) to show where it finishes.',
         severity: 'error',
       });
     }
 
-    // ── Rule 3: No unsupported element types ─────────────────────────────────
+    // ── Rule 3: No unsupported element types ──────────────────────────────────
     for (const el of shapes) {
       if (!SUPPORTED_TYPES.has(el.type)) {
         errors.push({
           elementId: el.id,
           elementName: el.businessObject?.name || null,
           rule: 'UNSUPPORTED_ELEMENT',
-          message: `Element type "${el.type}" is not supported. Remove it.`,
+          message: `The element type "${el.type}" is not allowed in this designer. Please remove it.`,
           severity: 'error',
         });
       }
     }
 
-    // ── Rule 4: No disconnected elements ────────────────────────────────────
+    // ── Rule 4: No floating / unconnected elements ────────────────────────────
     for (const shape of shapes) {
       if (shape.type === 'bpmn:StartEvent') continue;
       if (shape.type === 'bpmn:EndEvent')   continue;
+      if (shape.type === 'bpmn:ExclusiveGateway') continue; // auto-injected, skip
 
       const hasIncoming = shape.incoming && shape.incoming.length > 0;
       const hasOutgoing = shape.outgoing && shape.outgoing.length > 0;
+      const friendlyName = shape.businessObject?.name?.trim() || shape.id;
 
       if (!hasIncoming) {
         errors.push({
           elementId: shape.id,
-          elementName: shape.businessObject?.name || shape.id,
+          elementName: friendlyName,
           rule: 'DISCONNECTED_INCOMING',
-          message: `"${shape.businessObject?.name || shape.id}" has no incoming connection.`,
+          message: `"${friendlyName}" has no incoming connection. Connect an arrow into it.`,
           severity: 'error',
         });
       }
       if (!hasOutgoing) {
         errors.push({
           elementId: shape.id,
-          elementName: shape.businessObject?.name || shape.id,
+          elementName: friendlyName,
           rule: 'DISCONNECTED_OUTGOING',
-          message: `"${shape.businessObject?.name || shape.id}" has no outgoing connection.`,
+          message: `"${friendlyName}" has no outgoing connection. Connect an arrow out of it.`,
           severity: 'error',
         });
       }
     }
 
-    // ── Rule 5: Start Event connectivity ────────────────────────────────────
+    // ── Rule 5: Trigger connectivity ──────────────────────────────────────────
     for (const el of startEvents) {
       if (el.incoming && el.incoming.length > 0) {
         errors.push({
-          elementId: el.id, elementName: 'Start Event',
+          elementId: el.id, elementName: 'Trigger',
           rule: 'START_HAS_INCOMING',
-          message: 'Start Event cannot have incoming connections.',
+          message: 'The Trigger cannot have arrows coming into it — it is the starting point.',
           severity: 'error',
         });
       }
       if (!el.outgoing || el.outgoing.length === 0) {
         errors.push({
-          elementId: el.id, elementName: 'Start Event',
+          elementId: el.id, elementName: 'Trigger',
           rule: 'START_NOT_CONNECTED',
-          message: 'Start Event has no outgoing connection.',
+          message: 'The Trigger has no outgoing connection. Draw an arrow from it to the first Check Step.',
           severity: 'error',
         });
       }
     }
 
-    // ── Rule 6: End Event connectivity ──────────────────────────────────────
+    // ── Rule 6: Endpoint connectivity ─────────────────────────────────────────
     for (const el of endEvents) {
       if (el.outgoing && el.outgoing.length > 0) {
         errors.push({
-          elementId: el.id, elementName: 'End Event',
+          elementId: el.id, elementName: 'Endpoint',
           rule: 'END_HAS_OUTGOING',
-          message: 'End Event cannot have outgoing connections.',
+          message: 'An Endpoint cannot have outgoing connections — it is the finishing point.',
           severity: 'error',
         });
       }
       if (!el.incoming || el.incoming.length === 0) {
         errors.push({
-          elementId: el.id, elementName: 'End Event',
+          elementId: el.id, elementName: 'Endpoint',
           rule: 'END_NOT_CONNECTED',
-          message: 'End Event has no incoming connection.',
+          message: 'An Endpoint has no incoming connection. Connect a path to it.',
           severity: 'error',
         });
       }
     }
 
-    // ── Rule 7: Service Tasks must have a handler name ───────────────────────
-    for (const task of serviceTasks) {
+    // ── Rule 7: Tasks must have a handler chosen ──────────────────────────────
+    for (const task of tasks) {
       const name = task.businessObject?.name?.trim();
       if (!name) {
         errors.push({
           elementId: task.id, elementName: null,
-          rule: 'SERVICE_TASK_NO_NAME',
-          message: `A Service Task (${task.id}) has no handler name set. Select a handler in the properties panel.`,
+          rule: 'TASK_NO_HANDLER',
+          message: `A Check Step (${task.id}) has no rule selected. Click it and choose a rule from the properties panel.`,
           severity: 'error',
         });
       }
     }
 
-    // ── Rule 8: ServiceTask outgoing must connect to ExclusiveGateway ────────
-    for (const task of serviceTasks) {
+    // ── Rule 8: Tasks must have exactly 2 outgoing paths ─────────────────────
+    for (const task of tasks) {
       const outgoing: any[] = task.outgoing || [];
+      const name = task.businessObject?.name?.trim() || task.id;
 
-      if (outgoing.length > 1) {
+      if (outgoing.length < 2) {
         errors.push({
           elementId: task.id,
-          elementName: task.businessObject?.name || task.id,
-          rule: 'SERVICE_TASK_TOO_MANY_OUTGOING',
-          message: `Service Task "${task.businessObject?.name || task.id}" has ${outgoing.length} outgoing connections. Only 1 is allowed.`,
+          elementName: name,
+          rule: 'TASK_NEEDS_TWO_PATHS',
+          message: `Check Step "${name}" needs exactly 2 outgoing paths (one for Success, one for Failure). Currently has ${outgoing.length}.`,
           severity: 'error',
         });
-      }
-
-      for (const flow of outgoing) {
-        const target = flow.target;
-        if (!target) continue;
-        if (target.type !== 'bpmn:ExclusiveGateway') {
-          errors.push({
-            elementId: task.id,
-            elementName: task.businessObject?.name || task.id,
-            rule: 'SERVICE_TASK_INVALID_TARGET',
-            message: `Service Task "${task.businessObject?.name || task.id}" must connect to an Exclusive Gateway. ` +
-                     `Currently connected to "${target.businessObject?.name || target.type?.replace('bpmn:', '') || target.id}".`,
-            severity: 'error',
-          });
-        }
-      }
-    }
-
-    // ── Rule 9: ExclusiveGateway must have exactly 2 outgoing flows ──────────
-    for (const gw of gateways) {
-      const outgoing: any[] = gw.outgoing || [];
-
-      if (outgoing.length !== 2) {
+      } else if (outgoing.length > 2) {
         errors.push({
-          elementId: gw.id,
-          elementName: gw.businessObject?.name || gw.id,
-          rule: 'GATEWAY_WRONG_OUTGOING_COUNT',
-          message: `Gateway "${gw.businessObject?.name || gw.id}" has ${outgoing.length} outgoing flow(s). ` +
-                   `Exactly 2 are required (one for each condition branch).`,
+          elementId: task.id,
+          elementName: name,
+          rule: 'TASK_TOO_MANY_PATHS',
+          message: `Check Step "${name}" has ${outgoing.length} outgoing paths but only 2 are allowed. Delete the extra connection.`,
           severity: 'error',
         });
       }
 
-      // ── Rule 10: all outgoing flows must have conditionExpression ───────────
+      // Each outgoing flow must have a condition expression set
       for (const flow of outgoing) {
         const condition = flow.businessObject?.conditionExpression?.body?.trim();
         if (!condition) {
           errors.push({
             elementId: flow.id,
             elementName: flow.businessObject?.name || flow.id,
-            rule: 'MISSING_CONDITION',
-            message: `Sequence flow from gateway "${gw.businessObject?.name || gw.id}" is missing a condition expression. ` +
-                     `Click the flow and set its condition in the properties panel.`,
+            rule: 'MISSING_PATH_CONDITION',
+            message: `A path from Check Step "${name}" has no Success/Failure label. Click the Check Step and set both paths in its properties.`,
             severity: 'error',
           });
         }
       }
     }
 
-    // ── Rule 11: Every element must have a saved label ───────────────────────
-    // End Events must have a Lane N label
+    // ── Rule 9: Endpoint labels must be set and unique ────────────────────────
+    const endLabelsSeen = new Map<string, string>();
     for (const el of endEvents) {
       const name = el.businessObject?.name?.trim();
       if (!name) {
         errors.push({
           elementId: el.id,
-          elementName: 'End Event',
-          rule: 'MISSING_LABEL',
-          message: `An End Event (${el.id}) has no saved label. Open its properties and save a Lane label (e.g. "Lane 1").`,
+          elementName: 'Endpoint',
+          rule: 'MISSING_ENDPOINT_LABEL',
+          message: `An Endpoint (${el.id}) has no lane name. Click it and give it a name like "Lane 1".`,
           severity: 'error',
         });
+        continue;
       }
-    }
-
-    // Gateways must have a name
-    for (const gw of gateways) {
-      const name = gw.businessObject?.name?.trim();
-      if (!name) {
-        errors.push({
-          elementId: gw.id,
-          elementName: null,
-          rule: 'MISSING_LABEL',
-          message: `An Exclusive Gateway (${gw.id}) has no saved name. Open its properties and save a name.`,
-          severity: 'error',
-        });
-      }
-    }
-
-    // Sequence flows must have a label saved
-    for (const flow of flows) {
-      const name = flow.businessObject?.name?.trim();
-      // Gateway flows auto-label as "Success"/"Failure" — these are always set on save.
-      // Plain flows require explicit "Flow N" label.
-      // We check both: either the user saved a name, or it's a gateway flow with a condition
-      // (which sets the label automatically).
-      const fromGateway = flow.source?.type === 'bpmn:ExclusiveGateway';
-      const hasCondition = !!flow.businessObject?.conditionExpression?.body?.trim();
-
-      if (!name) {
-        if (fromGateway && !hasCondition) {
-          // Will already be caught by MISSING_CONDITION — skip duplicate
-          continue;
-        }
-        if (!fromGateway) {
-          errors.push({
-            elementId: flow.id,
-            elementName: null,
-            rule: 'MISSING_LABEL',
-            message: `A Sequence Flow (${flow.id}) has no saved label. Click the flow and save a label (e.g. "Flow 1").`,
-            severity: 'error',
-          });
-        }
-      }
-    }
-
-    // ── Rule 12: End Event labels must be unique ─────────────────────────────
-    const endLabelsSeen = new Map<string, string>(); // label → first elementId
-    for (const el of endEvents) {
-      const name = el.businessObject?.name?.trim();
-      if (!name) continue; // already caught by Rule 11
       const key = name.toLowerCase();
       if (endLabelsSeen.has(key)) {
         errors.push({
           elementId: el.id,
           elementName: name,
-          rule: 'DUPLICATE_END_EVENT_LABEL',
-          message: `Duplicate End Event label "${name}". Every End Event must have a unique lane label.`,
+          rule: 'DUPLICATE_ENDPOINT_LABEL',
+          message: `Two Endpoints share the name "${name}". Each Endpoint must have a unique lane name.`,
           severity: 'error',
         });
       } else {
@@ -301,12 +231,30 @@ export class BpmnCanvasValidator {
       }
     }
 
-    // ── Warning: Empty canvas ────────────────────────────────────────────────
+    // ── Rule 10: Gateway name check (for auto-injected gateways, skip) ────────
+    // Gateways on the visual canvas that were explicitly placed by user
+    const explicitGateways = elements.filter((el: any) =>
+      el.type === 'bpmn:ExclusiveGateway' &&
+      !(el.businessObject?.id || '').startsWith('__agw_')
+    );
+    for (const gw of explicitGateways) {
+      const name = gw.businessObject?.name?.trim();
+      if (!name) {
+        errors.push({
+          elementId: gw.id, elementName: null,
+          rule: 'GATEWAY_NO_NAME',
+          message: `A Gateway (${gw.id}) has no name. Open its properties and add a name.`,
+          severity: 'error',
+        });
+      }
+    }
+
+    // ── Empty canvas ──────────────────────────────────────────────────────────
     if (shapes.length === 0) {
       errors.push({
         elementId: null, elementName: null,
         rule: 'EMPTY_DIAGRAM',
-        message: 'The diagram is empty. Add at least a Start Event, Service Task, and End Event.',
+        message: 'The canvas is empty. Drag a Trigger, then a Check Step, then an Endpoint onto the canvas to build your workflow.',
         severity: 'error',
       });
     }
@@ -318,7 +266,3 @@ export class BpmnCanvasValidator {
     };
   }
 }
-
-
-
-

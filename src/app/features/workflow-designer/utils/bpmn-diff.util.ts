@@ -3,6 +3,10 @@ export class BpmnDiffUtil {
   /**
    * Returns true if the two BPMN XMLs are functionally identical.
    * Returns false if they differ in handlers, connections, conditions, names, etc.
+   *
+   * Key fix: sequence flows are NOT re-sorted during canonicalization because
+   * swapping Pass/Fail conditions changes the conditionExpression body — that
+   * difference must be preserved for the comparison to detect it.
    */
   static isIdentical(xmlA: string, xmlB: string): boolean {
     try {
@@ -10,7 +14,6 @@ export class BpmnDiffUtil {
       const normB = BpmnDiffUtil.normalize(xmlB);
       return normA === normB;
     } catch (e) {
-      // If parsing fails, assume they differ (safe default: allow deploy)
       console.warn('BpmnDiffUtil: parse error, assuming changed', e);
       return false;
     }
@@ -20,60 +23,75 @@ export class BpmnDiffUtil {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xml, 'application/xml');
 
-    // Remove BPMNDiagram section (layout only)
-    const diagramEls = doc.getElementsByTagNameNS('http://www.omg.org/spec/BPMN/20100524/DI', 'BPMNDiagram');
+    // Remove BPMNDiagram section — layout only, not functional
+    const diagramEls = doc.getElementsByTagNameNS(
+      'http://www.omg.org/spec/BPMN/20100524/DI', 'BPMNDiagram'
+    );
     Array.from(diagramEls).forEach(el => el.parentNode?.removeChild(el));
 
-    // Also try without namespace prefix
     const diagEls2 = doc.getElementsByTagName('bpmndi:BPMNDiagram');
     Array.from(diagEls2).forEach(el => el.parentNode?.removeChild(el));
 
-    // Strip IDs and layout attributes from all elements
+    // Strip only position/layout/id attributes — keep everything functional
     BpmnDiffUtil.stripNode(doc.documentElement);
 
-    // Canonicalize (sort children and attributes) for stable comparison
+    // Canonicalize — but preserve sequence flow order (conditions depend on it)
     BpmnDiffUtil.canonicalize(doc.documentElement);
 
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc)
-      .replace(/\s+/g, ' ')   // collapse whitespace
-      .replace(/> </g, '><')  // remove spaces between tags
+      .replace(/\s+/g, ' ')
+      .replace(/> </g, '><')
       .trim();
   }
 
+  /**
+   * Attributes to strip — only layout/identity, never functional content.
+   * NOTE: sourceRef and targetRef are intentionally NOT stripped here.
+   * Stripping them caused swapped Pass/Fail flows to look identical.
+   */
   private static readonly STRIP_ATTRS = new Set([
-    'id', 'sourceRef', 'targetRef',   // IDs and references
+    'id',                              // element IDs (structural, not semantic)
     'x', 'y', 'width', 'height',      // positions / dimensions
-    'waypoint',                        // flow routing points
   ]);
 
   private static stripNode(el: Element): void {
-    // Remove ID-like and layout attributes
     const attrsToRemove: string[] = [];
     for (let i = 0; i < el.attributes.length; i++) {
       const attr = el.attributes[i];
-      const localName = attr.localName;
-      if (BpmnDiffUtil.STRIP_ATTRS.has(localName)) {
+      if (BpmnDiffUtil.STRIP_ATTRS.has(attr.localName)) {
         attrsToRemove.push(attr.name);
       }
     }
     attrsToRemove.forEach(a => el.removeAttribute(a));
 
-    // Recurse into children
     Array.from(el.children).forEach(child => BpmnDiffUtil.stripNode(child));
   }
 
   private static canonicalize(el: Element): void {
     // Sort attributes alphabetically for stable serialization
-    const attrs = Array.from(el.attributes).sort((a, b) => a.name.localeCompare(b.name));
+    const attrs = Array.from(el.attributes).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
     attrs.forEach(attr => {
       el.removeAttributeNode(attr);
       el.setAttributeNode(attr);
     });
 
-    // Sort child elements by tagName + name attribute for stable comparison
     const children = Array.from(el.children);
-    children.sort((a, b) => {
+
+    // Sequence flows must NOT be re-sorted — their order encodes which
+    // condition (Pass/Fail) goes to which target. Sorting would make
+    // "swap Pass and Fail" look like no change.
+    const isSequenceFlow = (c: Element) =>
+      c.localName === 'sequenceFlow' || c.localName === 'SequenceFlow';
+
+    // Split children into sortable and order-preserving groups
+    const sortable    = children.filter(c => !isSequenceFlow(c));
+    const flowsInOrder = children.filter(c => isSequenceFlow(c));
+
+    // Sort non-flow elements by tag + name for stable comparison
+    sortable.sort((a, b) => {
       const tagCmp = a.tagName.localeCompare(b.tagName);
       if (tagCmp !== 0) return tagCmp;
       const nameA = a.getAttribute('name') ?? '';
@@ -81,8 +99,9 @@ export class BpmnDiffUtil {
       return nameA.localeCompare(nameB);
     });
 
-    children.forEach(child => {
-      el.appendChild(child); // re-append in sorted order
+    // Re-append: sorted non-flows first, then flows in original order
+    [...sortable, ...flowsInOrder].forEach(child => {
+      el.appendChild(child);
       BpmnDiffUtil.canonicalize(child);
     });
   }

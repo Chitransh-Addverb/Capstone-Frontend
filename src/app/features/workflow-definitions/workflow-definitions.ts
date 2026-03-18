@@ -7,9 +7,12 @@ import {
   WorkflowDefinition,
 } from '../../core/services/workflow-definition.service';
 import { WorkflowApiService } from '../../core/api/workflow-api.service';
+import { ScannerApiService } from '../../core/api/scanner-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { WorkflowDetailModal } from '../../shared/components/workflow-detail-modal/workflow-detail-modal';
 import { Pagination } from '../../shared/components/pagination/pagination';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 type SortOption   = 'updated' | 'name' | 'version';
@@ -27,6 +30,7 @@ export class WorkflowDefinitionsComponent implements OnInit {
 
   private service     = inject(WorkflowDefinitionService);
   private workflowApi = inject(WorkflowApiService);
+  private scannerApi  = inject(ScannerApiService);
   private router      = inject(Router);
   private toast       = inject(ToastService);
 
@@ -54,22 +58,43 @@ export class WorkflowDefinitionsComponent implements OnInit {
 
   /* ── 3-dot dropdown ─────────────────────────────────────── */
   openMenuKey  = signal<string | null>(null);
-
-  // ── ADDED: fixed-position coordinates for the dropdown ───
   menuTop  = 0;
   menuLeft = 0;
 
   /* ── Modals ─────────────────────────────────────────────── */
-  showDetailModal      = signal(false);
-  selectedDefinition   = signal<WorkflowDefinition | null>(null);
-  confirmDeleteTarget  = signal<{ key: string; version: number } | null>(null);
+  showDetailModal     = signal(false);
+  selectedDefinition  = signal<WorkflowDefinition | null>(null);
+  confirmDeleteTarget = signal<{ key: string; version: number } | null>(null);
+
+  /**
+   * Set of "workflow_key@version" strings that are currently assigned to at
+   * least one scanner. Keyed per version because multiple versions of the same
+   * workflow can each be active and mapped to different scanners simultaneously.
+   *
+   * Example: "scanner-1-workflow@1" and "scanner-1-workflow@2" can both be in
+   * this set at the same time — v1 mapped to Scanner A, v2 mapped to Scanner B.
+   */
+  mappedVersionKeys = signal<Set<string>>(new Set());
 
   /* ── Derived ─────────────────────────────────────────────── */
   allDefinitions = computed(() => this.service.definitions());
   totalWorkflows = computed(() => this.service.latestVersions().length);
-  activeCount    = computed(() =>
-    this.service.latestVersions().filter(d => d.status === 'active').length);
-  totalVersions  = computed(() => this.service.definitions().length);
+
+  /**
+   * Count of unique workflow keys that have at least one active version.
+   * Since multiple versions of a workflow can be active simultaneously,
+   * we count distinct workflow_keys that have any active version.
+   */
+  activeCount = computed(() => {
+    const activeKeys = new Set(
+      this.service.definitions()
+        .filter(d => d.status === 'active')
+        .map(d => d.workflow_key)
+    );
+    return activeKeys.size;
+  });
+
+  totalVersions = computed(() => this.service.definitions().length);
 
   existingWorkflowKeys = computed(() =>
     new Set(this.service.latestVersions().map(d => d.workflow_key.toLowerCase()))
@@ -80,6 +105,8 @@ export class WorkflowDefinitionsComponent implements OnInit {
     const status = this.statusFilter();
     const sort   = this.sortBy();
 
+    // Show latest version per workflow key in main table.
+    // Status filter applies to the latest version's status.
     let pool = this.service.latestVersions();
 
     if (q) {
@@ -101,11 +128,6 @@ export class WorkflowDefinitionsComponent implements OnInit {
     return pool;
   });
 
-  displayRows = computed((): { rows: WorkflowDefinition[]; isSearchMode: boolean } => ({
-    rows: this.pagedRows(),
-    isSearchMode: !!this.searchQuery().trim(),
-  }));
-
   pagedRows = computed((): WorkflowDefinition[] => {
     const start = (this.currentPage() - 1) * PAGE_SIZE;
     return this.filteredRows().slice(start, start + PAGE_SIZE);
@@ -119,11 +141,32 @@ export class WorkflowDefinitionsComponent implements OnInit {
     this.sortBy() !== 'updated',
   );
 
+  /* ── Per-version mapped check ───────────────────────────── */
+
+  /**
+   * Returns true if this specific version of the workflow is mapped to a
+   * scanner. Blocking deactivation is per key+version — other versions of the
+   * same workflow may be freely deactivated if they are not mapped.
+   */
+  isVersionMapped(workflowKey: string, version: number): boolean {
+    return this.mappedVersionKeys().has(`${workflowKey.toLowerCase()}@${version}`);
+  }
+
+  /**
+   * Returns true if ANY version of this workflow key is mapped.
+   * Used to show the "in use" badge on the main row.
+   */
+  isAnyVersionMapped(workflowKey: string): boolean {
+    const prefix = workflowKey.toLowerCase() + '@';
+    for (const k of this.mappedVersionKeys()) {
+      if (k.startsWith(prefix)) return true;
+    }
+    return false;
+  }
+
   /* ── Global click → close menu ──────────────────────────── */
   @HostListener('document:click')
-  onDocumentClick(): void {
-    this.openMenuKey.set(null);
-  }
+  onDocumentClick(): void { this.openMenuKey.set(null); }
 
   /* ── Lifecycle ──────────────────────────────────────────── */
   ngOnInit(): void { this.loadAll(); }
@@ -131,13 +174,49 @@ export class WorkflowDefinitionsComponent implements OnInit {
   loadAll(): void {
     this.pageLoading.set(true);
     this.pageError.set(null);
+
     this.service.loadAll().subscribe({
-      next:  () => this.pageLoading.set(false),
+      next: () => {
+        this.pageLoading.set(false);
+        this.loadMappedVersionKeys(); // background — non-blocking
+      },
       error: (err) => {
-        this.pageError.set(err?.message || 'Failed to load workflows.');
+        this.pageError.set(err?.message || 'Could not load workflows. Please try again.');
         this.pageLoading.set(false);
       },
     });
+  }
+
+  /**
+   * Fetches all scanners and their active configs to build the set of
+   * "key@version" strings that are currently assigned to at least one scanner.
+   *
+   * Multiple versions of the same workflow can each be mapped to different
+   * scanners — so we collect ALL assigned key+version pairs, not just key.
+   */
+  private loadMappedVersionKeys(): void {
+    this.scannerApi.listScanners().pipe(
+      switchMap(scanners => {
+        if (scanners.length === 0) return of([]);
+        return forkJoin(
+          scanners.map(s =>
+            this.scannerApi.getActiveConfig(s.scanner_id).pipe(
+              catchError(() => of(null))
+            )
+          )
+        );
+      }),
+      map(configs => {
+        const keys = new Set<string>();
+        for (const cfg of configs) {
+          if (cfg?.workflow_key && cfg.version != null) {
+            keys.add(`${cfg.workflow_key.toLowerCase()}@${cfg.version}`);
+          }
+        }
+        return keys;
+      }),
+      catchError(() => of(new Set<string>()))
+    ).subscribe(keys => this.mappedVersionKeys.set(keys));
   }
 
   /* ── Pagination ─────────────────────────────────────────── */
@@ -157,14 +236,12 @@ export class WorkflowDefinitionsComponent implements OnInit {
     if (!this.loadedKeys().has(key)) {
       this.service.loadVersionsForKey(key).subscribe({
         next:  () => this.loadedKeys.update(s => new Set([...s, key])),
-        error: () => this.toast.error('Failed to load versions', key),
+        error: () => this.toast.error('Could not load versions', key),
       });
     }
   }
 
-  isExpanded(key: string): boolean {
-    return this.expandedKey() === key;
-  }
+  isExpanded(key: string): boolean { return this.expandedKey() === key; }
 
   getVersionsForKey(key: string): WorkflowDefinition[] {
     return this.service.getByKey(key);
@@ -197,35 +274,23 @@ export class WorkflowDefinitionsComponent implements OnInit {
   /* ── 3-dot menu ─────────────────────────────────────────── */
   menuKey(key: string, version: number): string { return `${key}@${version}`; }
 
-  // ── CHANGED: was a simple toggle; now also computes fixed position ──
   toggleMenu(key: string, version: number, event: MouseEvent): void {
     event.stopPropagation();
-
     const k           = this.menuKey(key, version);
     const alreadyOpen = this.openMenuKey() === k;
-
-    // Always close first
     this.openMenuKey.set(null);
+    if (alreadyOpen) return;
 
-    if (alreadyOpen) return; // clicked same button → just close
-
-    // Compute fixed-position coordinates from the trigger button's rect
     const btn  = event.currentTarget as HTMLElement;
     const rect = btn.getBoundingClientRect();
-
-    const MENU_WIDTH  = 180;  // must match min-width in SCSS
-    const MENU_HEIGHT = 160;  // approximate menu height
-
-    // Open below by default; flip above if not enough room below
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const openAbove  = spaceBelow < MENU_HEIGHT && rect.top > MENU_HEIGHT;
+    const MENU_WIDTH  = 200;
+    const MENU_HEIGHT = 160;
+    const spaceBelow  = window.innerHeight - rect.bottom;
+    const openAbove   = spaceBelow < MENU_HEIGHT && rect.top > MENU_HEIGHT;
 
     this.menuTop  = openAbove ? rect.top - MENU_HEIGHT - 4 : rect.bottom + 4;
     this.menuLeft = rect.right - MENU_WIDTH;
-
-    // Clamp: never let it overflow off the left edge
     if (this.menuLeft < 8) this.menuLeft = 8;
-
     this.openMenuKey.set(k);
   }
 
@@ -281,11 +346,11 @@ export class WorkflowDefinitionsComponent implements OnInit {
     this.togglingKey.set(k);
     this.service.activate(def.workflow_key, def.version).subscribe({
       next: () => {
-        this.toast.success('Activated', `${def.workflow_key} v${def.version} is now active.`);
+        this.toast.success('Activated', `"${def.workflow_key}" v${def.version} is now active.`);
         this.togglingKey.set(null);
       },
       error: (err) => {
-        this.toast.error('Failed', err?.error?.message || 'Could not reach the backend.');
+        this.toast.error('Could not activate', err?.error?.message || 'Please try again.');
         this.togglingKey.set(null);
       },
     });
@@ -294,16 +359,26 @@ export class WorkflowDefinitionsComponent implements OnInit {
   deactivate(def: WorkflowDefinition, event: Event): void {
     event.stopPropagation();
     this.closeMenu();
+
+    // Guard — block only if THIS specific version is mapped to a scanner
+    if (this.isVersionMapped(def.workflow_key, def.version)) {
+      this.toast.error(
+        'Cannot deactivate',
+        `Version ${def.version} of "${def.workflow_key}" is assigned to a scanner. Remove it from the scanner first.`
+      );
+      return;
+    }
+
     const k = this.menuKey(def.workflow_key, def.version);
     if (this.togglingKey()) return;
     this.togglingKey.set(k);
     this.service.deactivate(def.workflow_key, def.version).subscribe({
       next: () => {
-        this.toast.success('Paused', `${def.workflow_key} v${def.version} is now inactive.`);
+        this.toast.success('Deactivated', `"${def.workflow_key}" v${def.version} is now inactive.`);
         this.togglingKey.set(null);
       },
       error: (err) => {
-        this.toast.error('Failed', err?.error?.message || 'Could not reach the backend.');
+        this.toast.error('Could not deactivate', err?.error?.message || 'Please try again.');
         this.togglingKey.set(null);
       },
     });
@@ -328,7 +403,7 @@ export class WorkflowDefinitionsComponent implements OnInit {
     this.deletingKey.set(this.menuKey(target.key, target.version));
     this.service.delete(target.key, target.version).subscribe({
       next: () => {
-        this.toast.success('Deleted', `${target.key} v${target.version} removed.`);
+        this.toast.success('Deleted', `"${target.key}" v${target.version} removed.`);
         this.confirmDeleteTarget.set(null);
         this.deletingKey.set(null);
         if (this.pagedRows().length === 0 && this.currentPage() > 1) {
@@ -336,11 +411,20 @@ export class WorkflowDefinitionsComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toast.error('Delete failed', err?.error?.message || 'Backend error.');
+        this.toast.error('Could not delete', err?.error?.message || 'Please try again.');
         this.confirmDeleteTarget.set(null);
         this.deletingKey.set(null);
       },
     });
+  }
+
+  /**
+   * Returns true if this workflow key has any version that is active,
+   * but the latest version (shown in the main row) is NOT that version.
+   * Used to show a secondary "Older version active" indicator.
+   */
+  hasOlderActiveVersion(workflowKey: string): boolean {
+    return this.service.getByKey(workflowKey).some(d => d.status === 'active');
   }
 
   /* ── Helpers ────────────────────────────────────────────── */
@@ -360,5 +444,3 @@ export class WorkflowDefinitionsComponent implements OnInit {
     return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
   }
 }
-
-

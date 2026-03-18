@@ -27,59 +27,31 @@ interface DrawerState {
 type MappingFilter = 'all' | 'mapped' | 'unmapped';
 type ScannerSort   = 'id' | 'mapped' | 'status';
 
-/* ── Scanner ID normalization ────────────────────────────────────────────
- *
- * Valid inputs (case-insensitive, separator: - _ or space):
- *   SC<sep>N   → stored as SC-N  (e.g. SC-1, SC2, SC_3, sc 4 → SC-1, SC2, SC-3, SC-4)
- *   Scanner<sep>N → stored as Scanner-N  (e.g. scanner_1, SCANNER 2 → Scanner-1, Scanner-2)
- *
- * If there is NO separator before the number (e.g. "SC2"), the number is
- * kept directly attached: SC2 (no dash).
- * If there IS a separator (- _ space), it is normalized to "-".
- */
-
-/**
- * Normalizes a raw scanner-ID string to canonical storage form.
- * Returns null if the input does not match any allowed pattern.
- */
+/* ── Scanner ID normalization ─────────────────────────────────────── */
 export function normalizeScannerIdInput(raw: string): string | null {
   const s = raw.trim();
-
-  // Pattern: (SC|Scanner) optionally followed by ([-_\s]+) then (digits+)
   const re = /^(sc|scanner)([-_ ]+)?(\d+)$/i;
   const m  = s.match(re);
   if (!m) return null;
-
   const prefix    = m[1];
-  const hasSep    = !!m[2];       // was there a separator char?
+  const hasSep    = !!m[2];
   const digits    = m[3];
-
-  // Canonical prefix
   const canonical = prefix.toUpperCase() === 'SC' ? 'SC' : 'Scanner';
-
-  // Separator: if the user wrote one, normalize to "-"; if none, keep none.
-  const sep = hasSep ? '-' : '';
-
+  const sep       = hasSep ? '-' : '';
   return `${canonical}${sep}${digits}`;
 }
 
-/**
- * Returns a human-readable validation message when the input is invalid,
- * or null when it is fine.
- */
 export function validateScannerIdInput(raw: string): string | null {
   const s = raw.trim();
-  if (!s) return null; // handled by the "required" guard
-
+  if (!s) return null;
   const ok = normalizeScannerIdInput(s) !== null;
-  if (!ok) {
-    return 'Must match SC-1, SC_1, Scanner-1, Scanner_1 etc. (number required).';
-  }
+  if (!ok) return 'Must match SC-1, SC_1, Scanner-1, Scanner_1 etc. (number required).';
   return null;
 }
 
 @Component({
   selector: 'app-scanner-config',
+  standalone: true,
   imports: [CommonModule, FormsModule, ScannerWorkflowModal],
   templateUrl: './scanner-config.html',
   styleUrl: './scanner-config.scss',
@@ -90,12 +62,12 @@ export class ScannerConfig implements OnInit {
   private workflowApi = inject(WorkflowApiService);
   private toast       = inject(ToastService);
 
-  // ── Scanner data ──────────────────────────────────────────────────
+  /* ── Scanner data ────────────────────────────────────────────── */
   rows    = signal<ScannerRow[]>([]);
   loading = signal(true);
   error   = signal<string | null>(null);
 
-  // ── Filter / search / sort ────────────────────────────────────────
+  /* ── Filter / search / sort ─────────────────────────────────── */
   scannerSearch = signal('');
   mappingFilter = signal<MappingFilter>('all');
   scannerSort   = signal<ScannerSort>('id');
@@ -135,7 +107,7 @@ export class ScannerConfig implements OnInit {
     this.scannerSort.set('id');
   }
 
-  // ── Workflow list (for drawer) ────────────────────────────────────
+  /* ── Workflow list (for drawer) ─────────────────────────────── */
   allWorkflows     = signal<WorkflowDefinitionDto[]>([]);
   wfSearch         = signal('');
   workflowsLoading = signal(false);
@@ -150,7 +122,7 @@ export class ScannerConfig implements OnInit {
   });
 
   filteredWorkflows = computed(() => {
-    const q = this.wfSearch().trim().toLowerCase();
+    const q      = this.wfSearch().trim().toLowerCase();
     const unique = this.uniqueWorkflows();
     if (!q) return unique;
     return unique.filter(w =>
@@ -161,37 +133,37 @@ export class ScannerConfig implements OnInit {
 
   versionsForKey = signal<WorkflowDefinitionDto[]>([]);
 
-  // ── Drawer ────────────────────────────────────────────────────────
+  /* ── Drawer ──────────────────────────────────────────────────── */
   showDrawer = signal(false);
   drawer     = signal<DrawerState | null>(null);
   saving     = signal(false);
 
-  // ── Detach ────────────────────────────────────────────────────────
+  /* ── Detach ──────────────────────────────────────────────────── */
   detachTarget = signal<ScannerRow | null>(null);
   detaching    = signal(false);
 
-  // ── Add Scanner ───────────────────────────────────────────────────
+  /* ── Add Scanner ─────────────────────────────────────────────── */
   showAddScanner  = signal(false);
   newScannerId    = signal('');
   addingScanner   = signal(false);
   addScannerError = signal<string | null>(null);
 
-  /** Derived: preview of what will actually be stored */
   normalizedPreview = computed(() => {
     const raw = this.newScannerId().trim();
     if (!raw) return null;
     return normalizeScannerIdInput(raw);
   });
 
-  // ── Workflow preview modal ────────────────────────────────────────
+  /* ── Workflow preview modal ──────────────────────────────────── */
   showWorkflowModal = signal(false);
   modalRow          = signal<ScannerRow | null>(null);
 
-  // ── Stats ─────────────────────────────────────────────────────────
+  /* ── Stats ───────────────────────────────────────────────────── */
   mappedCount   = computed(() => this.rows().filter(r => !!r.config).length);
   unmappedCount = computed(() => this.rows().filter(r => !r.config).length);
+  onlineCount   = computed(() => this.rows().filter(r => r.scanner.status).length);
 
-  // ── Lifecycle ─────────────────────────────────────────────────────
+  /* ── Lifecycle ───────────────────────────────────────────────── */
   ngOnInit(): void {
     this.loadAll();
     this.loadWorkflows();
@@ -217,13 +189,13 @@ export class ScannerConfig implements OnInit {
             this.loading.set(false);
           },
           error: (err) => {
-            this.error.set(err.message || 'Failed to load scanner configs.');
+            this.error.set(err.message || 'Could not load scanner details. Please try again.');
             this.loading.set(false);
           },
         });
       },
       error: (err) => {
-        this.error.set(err.message || 'Failed to load scanners.');
+        this.error.set(err.message || 'Could not load scanners. Please try again.');
         this.loading.set(false);
       },
     });
@@ -248,13 +220,7 @@ export class ScannerConfig implements OnInit {
     });
   }
 
-  // ── Workflow preview modal ────────────────────────────────────────
-
-  /**
-   * Open the workflow preview modal for a scanner card.
-   * Called on card click — but NOT when clicking action buttons inside
-   * the card (those call stopPropagation on their own).
-   */
+  /* ── Workflow preview modal ──────────────────────────────────── */
   openWorkflowModal(row: ScannerRow): void {
     this.modalRow.set(row);
     this.showWorkflowModal.set(true);
@@ -262,11 +228,10 @@ export class ScannerConfig implements OnInit {
 
   closeWorkflowModal(): void {
     this.showWorkflowModal.set(false);
-    // Keep modalRow so the modal can animate out cleanly; clear after delay
     setTimeout(() => this.modalRow.set(null), 300);
   }
 
-  // ── Add Scanner ───────────────────────────────────────────────────
+  /* ── Add Scanner ─────────────────────────────────────────────── */
   openAddScanner(): void {
     this.newScannerId.set('');
     this.addScannerError.set(null);
@@ -284,17 +249,14 @@ export class ScannerConfig implements OnInit {
     const raw = this.newScannerId().trim();
     if (!raw) return;
 
-    // ── Validation ──────────────────────────────────────────────────
     const validationMsg = validateScannerIdInput(raw);
     if (validationMsg) {
       this.addScannerError.set(validationMsg);
       return;
     }
 
-    // ── Normalize to canonical form ─────────────────────────────────
-    const id = normalizeScannerIdInput(raw)!;  // safe — passed validation
+    const id = normalizeScannerIdInput(raw)!;
 
-    // ── Duplicate check (against already-stored canonical IDs) ──────
     if (this.rows().some(r => r.scanner.scanner_id === id)) {
       this.addScannerError.set(`Scanner "${id}" is already registered.`);
       return;
@@ -305,20 +267,20 @@ export class ScannerConfig implements OnInit {
 
     this.scannerApi.createScanner({ scanner_id: id }).subscribe({
       next: () => {
-        this.toast.success('Scanner registered', `${id} is now available for workflow mapping.`);
+        this.toast.success('Scanner added', `${id} is ready for workflow assignment.`);
         this.showAddScanner.set(false);
         this.newScannerId.set('');
         this.addingScanner.set(false);
         this.loadAll();
       },
       error: (err) => {
-        this.addScannerError.set(err?.error?.message || err?.message || 'Failed to register scanner.');
+        this.addScannerError.set(err?.error?.message || err?.message || 'Could not register scanner.');
         this.addingScanner.set(false);
       },
     });
   }
 
-  // ── Drawer ────────────────────────────────────────────────────────
+  /* ── Drawer ──────────────────────────────────────────────────── */
   openAssign(row: ScannerRow): void {
     const existing    = row.config;
     const firstWf     = this.uniqueWorkflows()[0];
@@ -355,14 +317,15 @@ export class ScannerConfig implements OnInit {
 
     this.scannerApi.activateWorkflow(d.scanner.scanner_id, {
       workflow_key: d.selectedKey,
-      version: d.selectedVersion,
-      activate: true,
+      version:      d.selectedVersion,
+      activate:     true,
     }).subscribe({
       next: (res) => {
+        // Also activate the selected workflow version on the backend
         this.workflowApi.setActive(d.selectedKey, d.selectedVersion, true).subscribe({
           next: () => {
             this.toast.success(
-              d.existingConfig ? 'Mapping updated!' : 'Workflow mapped & activated!',
+              d.existingConfig ? 'Mapping updated!' : 'Workflow assigned!',
               `${res.scanner_id} → ${res.workflow_key} v${res.version}`,
             );
             this.showDrawer.set(false);
@@ -371,7 +334,7 @@ export class ScannerConfig implements OnInit {
             this.loadWorkflows();
           },
           error: () => {
-            this.toast.success('Mapping saved', `${res.scanner_id} → ${res.workflow_key} v${res.version} (activation pending)`);
+            this.toast.success('Mapping saved', `${res.scanner_id} → ${res.workflow_key} v${res.version}`);
             this.showDrawer.set(false);
             this.saving.set(false);
             this.loadAll();
@@ -379,7 +342,7 @@ export class ScannerConfig implements OnInit {
         });
       },
       error: (err) => {
-        this.toast.error('Failed to map workflow', err.error?.message || err.message);
+        this.toast.error('Could not assign workflow', err.error?.message || err.message);
         this.saving.set(false);
       },
     });
@@ -392,7 +355,7 @@ export class ScannerConfig implements OnInit {
     this.wfSearch.set('');
   }
 
-  // ── Detach ────────────────────────────────────────────────────────
+  /* ── Detach ──────────────────────────────────────────────────── */
   openDetach(row: ScannerRow): void { this.detachTarget.set(row); }
 
   confirmDetach(): void {
@@ -401,17 +364,17 @@ export class ScannerConfig implements OnInit {
     this.detaching.set(true);
     this.scannerApi.activateWorkflow(target.scanner.scanner_id, {
       workflow_key: target.config.workflow_key,
-      version: target.config.version,
-      activate: false,
+      version:      target.config.version,
+      activate:     false,
     }).subscribe({
       next: () => {
-        this.toast.success('Workflow detached', `${target.scanner.scanner_id} is now unmapped.`);
+        this.toast.success('Workflow removed', `${target.scanner.scanner_id} is now unassigned.`);
         this.detachTarget.set(null);
         this.detaching.set(false);
         this.loadAll();
       },
       error: (err) => {
-        this.toast.error('Detach failed', err.error?.message || err.message);
+        this.toast.error('Could not remove workflow', err.error?.message || err.message);
         this.detaching.set(false);
       },
     });
@@ -419,7 +382,7 @@ export class ScannerConfig implements OnInit {
 
   cancelDetach(): void { this.detachTarget.set(null); }
 
-  // ── Helpers ───────────────────────────────────────────────────────
+  /* ── Helpers ─────────────────────────────────────────────────── */
   formatDate(date: string): string {
     if (!date) return '—';
     return new Intl.DateTimeFormat('en-US', {
@@ -431,14 +394,8 @@ export class ScannerConfig implements OnInit {
     return (key ?? '?').charAt(0).toUpperCase();
   }
 
-  /** Live feedback: validate while the user types */
   onScannerIdChange(value: string): void {
     this.newScannerId.set(value);
-    // Clear error as soon as input changes — re-validate on submit
     this.addScannerError.set(null);
   }
 }
-
-
-
-

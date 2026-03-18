@@ -20,9 +20,6 @@
           </div>
           <span class="rail-title">Workflow Monitor</span>
         </div>
-        <div class="live-pill">
-          <span class="live-dot"></span>LIVE
-        </div>
       </div>
 
       <!--
@@ -378,20 +375,13 @@
             <span class="dh-field-val">{{ fmtDateTime(inst.dto.startedAt) }}</span>
           </div>
 
+          <div class="dh-sep"></div>
+          <div></div>
+
           @if (inst.dto.completedAt) {
             <div class="dh-field">
               <span class="dh-field-key">Finished</span>
-              <span class="dh-field-val">{{ fmtTime(inst.dto.completedAt) }}</span>
-            </div>
-          }
-
-          @if (activeTab() === 'history') {
-            <div class="source-badge">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor"
-                   stroke-width="1.6" stroke-linecap="round">
-                <path d="M1 5A4 4 0 109 5M1 5V2M1 5h3.5"/>
-              </svg>
-              History
+              <span class="dh-field-val">{{ fmtDateTime(inst.dto.completedAt) }}</span>
             </div>
           }
         </div>

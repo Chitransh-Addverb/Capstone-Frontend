@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { API_ENDPOINTS } from './api.config';
 
 export interface ScannerDto {
@@ -68,18 +69,21 @@ export class ScannerApiService {
 
   /**
    * GET /api/v1/scanners/{scannerId}/config
-   * Returns null if no active mapping exists (404 handled by caller via catchError).
+   * Returns null if scanner has no active mapping (404 → null).
    */
   getActiveConfig(scannerId: string): Observable<ScannerConfigDto | null> {
     return this.http
       .get<ApiResponse<ScannerConfigDto>>(API_ENDPOINTS.scanner.config(scannerId))
-      .pipe(map(r => r.data ?? null));
+      .pipe(
+        map(r => r.data ?? null),
+        catchError(() => of(null))  // 404 or any error → null (no config)
+      );
   }
 
   /**
    * POST /api/v1/scanners/{scannerId}:activate
-   * activate: true  → attach workflow to scanner
-   * activate: false → detach workflow from scanner
+   * activate: true  → assign workflow to scanner
+   * activate: false → remove workflow from scanner
    */
   activateWorkflow(
     scannerId: string,
@@ -93,7 +97,3 @@ export class ScannerApiService {
       .pipe(map(r => r.data));
   }
 }
-
-
-
-

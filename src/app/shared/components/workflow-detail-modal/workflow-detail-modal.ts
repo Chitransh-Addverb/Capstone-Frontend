@@ -1,8 +1,10 @@
-import { Component, Input, Output, EventEmitter, OnChanges, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WorkflowDefinition } from '../../../core/services/workflow-definition.service';
 import { ScannerApiService, ScannerDto, ScannerConfigDto } from '../../../core/api/scanner-api.service';
-import { signal } from '@angular/core';
+import { BpmnXmlTransformer } from '../../../features/workflow-designer/utils/bpmn-xml-transformer';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-workflow-detail-modal',
@@ -18,15 +20,32 @@ export class WorkflowDetailModal implements OnChanges {
 
   private scannerApi = inject(ScannerApiService);
 
-  mappedScanners = signal<{ scanner: ScannerDto; config: ScannerConfigDto }[]>([]);
+  mappedScanners  = signal<{ scanner: ScannerDto; config: ScannerConfigDto }[]>([]);
   loadingScanners = signal(false);
-  xmlCopied = signal(false);
+  xmlCopied       = signal(false);
+
+  /**
+   * Canvas-friendly XML (gateways stripped) for display.
+   * We store it separately so the copy button still copies the full backend XML.
+   */
+  canvasXml = signal('');
 
   ngOnChanges(): void {
     if (this.visible && this.definition) {
+      this.mappedScanners.set([]);
       this.loadMappedScanners();
+
+      // Transform backend XML → canvas XML for clean display
+      if (this.definition.bpmn_xml) {
+        this.canvasXml.set(
+          BpmnXmlTransformer.toCanvasXml(this.definition.bpmn_xml)
+        );
+      } else {
+        this.canvasXml.set('');
+      }
     } else {
       this.mappedScanners.set([]);
+      this.canvasXml.set('');
     }
   }
 
@@ -34,24 +53,30 @@ export class WorkflowDetailModal implements OnChanges {
     if (!this.definition) return;
     this.loadingScanners.set(true);
 
-    this.scannerApi.listScanners().subscribe({
-      next: (scanners) => {
-        const checks = scanners.map(scanner =>
-          this.scannerApi.getActiveConfig(scanner.scanner_id).subscribe({
-            next: (config) => {
-              if (
-                config &&
-                config.workflow_key === this.definition!.workflow_key &&
-                config.version === this.definition!.version
-              ) {
-                this.mappedScanners.update(list => [...list, { scanner, config }]);
-              }
-            },
-            error: () => { /* scanner has no config, skip */ },
-          })
+    // Load all scanners then check each config — use forkJoin for cleaner async
+    this.scannerApi.listScanners().pipe(
+      switchMap(scanners => {
+        if (scanners.length === 0) return of([]);
+        return forkJoin(
+          scanners.map(scanner =>
+            this.scannerApi.getActiveConfig(scanner.scanner_id).pipe(
+              map(config => ({ scanner, config })),
+              catchError(() => of({ scanner, config: null }))
+            )
+          )
         );
-        // Mark loading done after all requests initiated
-        // (responses stream in asynchronously)
+      })
+    ).subscribe({
+      next: (results) => {
+        const mapped = results
+          .filter(r =>
+            r.config &&
+            r.config.workflow_key === this.definition!.workflow_key &&
+            r.config.version === this.definition!.version
+          )
+          .map(r => ({ scanner: r.scanner, config: r.config! }));
+
+        this.mappedScanners.set(mapped);
         this.loadingScanners.set(false);
       },
       error: () => this.loadingScanners.set(false),
@@ -61,6 +86,7 @@ export class WorkflowDetailModal implements OnChanges {
   async copyXml(): Promise<void> {
     if (!this.definition?.bpmn_xml) return;
     try {
+      // Copy the original backend XML (complete, with gateways)
       await navigator.clipboard.writeText(this.definition.bpmn_xml);
       this.xmlCopied.set(true);
       setTimeout(() => this.xmlCopied.set(false), 2000);
@@ -74,12 +100,7 @@ export class WorkflowDetailModal implements OnChanges {
   }
 
   getStatusClass(status: string): string {
-    const map: Record<string, string> = {
-      active: 'badge-success',
-      inactive: 'badge-neutral',
-      draft: 'badge-warning',
-    };
-    return map[status] || 'badge-neutral';
+    return status === 'active' ? 'badge-success' : 'badge-neutral';
   }
 
   formatDate(date: Date): string {
@@ -88,7 +109,8 @@ export class WorkflowDetailModal implements OnChanges {
       hour: '2-digit', minute: '2-digit',
     }).format(new Date(date));
   }
+
+  getXmlCharCount(): number {
+    return this.definition?.bpmn_xml?.length ?? 0;
+  }
 }
-
-
-

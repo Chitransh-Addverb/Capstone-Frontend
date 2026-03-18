@@ -13,6 +13,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { RestrictedPaletteProvider } from './providers/restricted-palette.provider';
 import { RestrictedContextPadProvider } from './providers/restricted-context-pad.provider';
 import { GatewayFlowLimitProvider } from './providers/gateway-flow-limit.provider';
+import { BpmnXmlTransformer } from './utils/bpmn-xml-transformer';
 
 import {
   PropertiesPanel,
@@ -56,19 +57,11 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
   validationErrors = signal<ValidationError[]>([]);
   validationWarnings = signal<ValidationError[]>([]);
 
-  /** True once the user has made any change to the diagram */
   hasUnsavedChanges = signal(false);
-
-  /** Controls the reset-confirmation modal */
   showResetConfirm = signal(false);
-
-  /** Controls the navigate-away confirmation modal */
   showLeaveConfirm = signal(false);
 
-  /** Pending navigation URL captured when the user tries to leave */
   private pendingNavUrl: string | null = null;
-
-  /** Set to true just before a successful deploy so we don't block navigation */
   private deployedSuccessfully = false;
 
   existingWorkflowKeys = computed(() =>
@@ -84,13 +77,10 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
   private workflowStore = inject(WorkflowDefinitionService);
   private toast = inject(ToastService);
 
-  // ── Browser tab / window close guard ─────────────────────
   @HostListener('window:beforeunload', ['$event'])
   onBeforeUnload(e: BeforeUnloadEvent): void {
     if (this.hasUnsavedChanges() && !this.deployedSuccessfully) {
       e.preventDefault();
-      // Modern browsers show their own generic message; setting returnValue
-      // is required for the dialog to appear in some browsers.
       e.returnValue = '';
     }
   }
@@ -140,23 +130,26 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
       const elementRegistry = this.modeler.get('elementRegistry');
       const modeling        = this.modeler.get('modeling');
 
-      // Auto-name start events "Scanner"
+      // Auto-name start events "Scanner 1" on import
       eventBus.on('import.done', () => {
         elementRegistry
           .filter((el: any) => el.type === 'bpmn:StartEvent')
           .forEach((el: any) => {
-            if (el.businessObject?.name?.trim() !== 'Scanner') {
-              modeling.updateProperties(el, { name: 'Scanner' });
+            if (!el.businessObject?.name?.trim()) {
+              modeling.updateProperties(el, { name: 'Scanner 1' });
             }
           });
       });
 
+      // Auto-name start events on creation
       eventBus.on('commandStack.shape.create.postExecute', (event: any) => {
-        if (event.context.shape.type === 'bpmn:StartEvent') {
-          modeling.updateProperties(event.context.shape, { name: 'Scanner' });
+        const shape = event.context.shape;
+        if (shape.type === 'bpmn:StartEvent') {
+          modeling.updateProperties(shape, { name: 'Scanner 1' });
         }
       });
 
+      // Remove intermediate event from context pad
       this.modeler.on('contextPad.open', () => {
         requestAnimationFrame(() => {
           document.querySelectorAll<HTMLElement>(
@@ -166,12 +159,12 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
         });
       });
 
-      // ── Track unsaved changes ──────────────────────────────
-      // commandStack.changed fires after every user edit
+      // Track unsaved changes
       eventBus.on('commandStack.changed', () => {
         this.hasUnsavedChanges.set(true);
       });
 
+      // ── Load diagram ──────────────────────────────────────
       if (this.isEditMode()) {
         try {
           const dto = await this.workflowApi
@@ -179,7 +172,9 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
             .toPromise();
 
           if (dto?.bpmn_xml) {
-            await this.modeler.importXML(dto.bpmn_xml);
+            // Strip gateway from backend XML so canvas stays simple
+            const canvasXml = BpmnXmlTransformer.toCanvasXml(dto.bpmn_xml);
+            await this.modeler.importXML(canvasXml);
             this.originalXml = dto.bpmn_xml;
             this.editDescription.set(dto.description ?? '');
             this.nextVersion.set((dto.version ?? this.editVersion()) + 1);
@@ -195,7 +190,7 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
         await this.modeler.createDiagram();
       }
 
-      // After initial load, reset the dirty flag — changes start from here
+      // After initial load, reset dirty flag
       this.hasUnsavedChanges.set(false);
 
       this.modeler.get('canvas').zoom('fit-viewport');
@@ -208,16 +203,62 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
         this.elementCount.set(Math.max(0, elementRegistry2.size - 1));
       });
 
+      // ── Selection handler ─────────────────────────────────
       this.modeler.get('eventBus').on('selection.changed', (event: any) => {
         const selected = event.newSelection;
         if (selected && selected.length === 1) {
           const el = selected[0];
-          if (el.type === 'bpmn:StartEvent') { this.selectedElement.set(null); return; }
+
+          // Start Event — not editable
+          if (el.type === 'bpmn:StartEvent') {
+            this.selectedElement.set(null);
+            return;
+          }
+
+          // ExclusiveGateway — hidden from user, redirect to paired Task
+          if (el.type === 'bpmn:ExclusiveGateway') {
+            const incoming: any[] = el.incoming || [];
+            const internalFlow = incoming.find(
+              (f: any) => f.source?.type === 'bpmn:Task'
+            );
+            if (internalFlow?.source) {
+              this.selectedElement.set(internalFlow.source);
+            } else {
+              this.selectedElement.set(null);
+            }
+            return;
+          }
+
+          // SequenceFlow handling
+          if (el.type === 'bpmn:SequenceFlow') {
+            // Internal task→gateway flow — hide
+            const fromTask    = el.source?.type === 'bpmn:Task';
+            const toGateway   = el.target?.type === 'bpmn:ExclusiveGateway';
+            if (fromTask && toGateway) {
+              this.selectedElement.set(null);
+              return;
+            }
+            // Gateway outgoing flow — redirect to paired task
+            if (el.source?.type === 'bpmn:ExclusiveGateway') {
+              const gwIncoming: any[] = el.source?.incoming || [];
+              const internalFlow = gwIncoming.find(
+                (f: any) => f.source?.type === 'bpmn:Task'
+              );
+              if (internalFlow?.source) {
+                this.selectedElement.set(internalFlow.source);
+                return;
+              }
+            }
+          }
+
+          // All other editable types
           const editableTypes = [
-            'bpmn:EndEvent', 'bpmn:ServiceTask',
-            'bpmn:ExclusiveGateway', 'bpmn:SequenceFlow',
+            'bpmn:EndEvent',
+            'bpmn:Task',
+            'bpmn:SequenceFlow',
           ];
           this.selectedElement.set(editableTypes.includes(el.type) ? el : null);
+
         } else {
           this.selectedElement.set(null);
         }
@@ -242,7 +283,7 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
       conditionExpression: moddle.create('bpmn:FormalExpression', { body: event.condition }),
       name: event.label || undefined,
     });
-    this.toast.success('Condition saved', 'Flow condition updated.');
+    this.toast.success('Saved', `Outcome set to "${event.label}".`);
   }
 
   onTaskNameSaved(event: TaskNameSaveEvent): void {
@@ -250,7 +291,7 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
     const element = this.modeler.get('elementRegistry').get(event.elementId);
     if (!element) return;
     this.modeler.get('modeling').updateProperties(element, { name: event.handlerName });
-    this.toast.success('Service Task saved', `Handler: ${event.handlerName}`);
+    this.toast.success('Validation Step saved', `Check: ${event.label}`);
   }
 
   onNameSaved(event: NameSaveEvent): void {
@@ -269,16 +310,10 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
 
   // ── Reset diagram ─────────────────────────────────────────
 
-  /**
-   * Called from the Reset button in the header.
-   * If there are unsaved changes, show a confirmation modal first.
-   * If the canvas is pristine, reset immediately (no point asking).
-   */
   openResetConfirm(): void {
     if (this.hasUnsavedChanges()) {
       this.showResetConfirm.set(true);
     } else {
-      // Nothing to lose — reset silently
       this.executeReset();
     }
   }
@@ -302,7 +337,8 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
           .getByKeyAndVersion(this.editKey(), this.editVersion())
           .toPromise();
         if (dto?.bpmn_xml) {
-          await this.modeler.importXML(dto.bpmn_xml);
+          const canvasXml = BpmnXmlTransformer.toCanvasXml(dto.bpmn_xml);
+          await this.modeler.importXML(canvasXml);
           this.originalXml = dto.bpmn_xml;
         }
       } catch {
@@ -313,21 +349,11 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
     }
 
     this.modeler.get('canvas').zoom('fit-viewport');
-    // After reset, diagram matches saved state → no unsaved changes
     this.hasUnsavedChanges.set(false);
   }
 
   // ── Navigate-away guard ───────────────────────────────────
 
-  /**
-   * Called from every nav link / router-link that could take the user
-   * away from the designer (sidebar links, breadcrumbs, etc.).
-   *
-   * Usage in template:
-   *   (click)="navigateSafely('/definitions', $event)"
-   *
-   * For Angular Router programmatic navigation call navigateSafely() directly.
-   */
   navigateSafely(url: string, event?: Event): void {
     event?.preventDefault();
     if (this.hasUnsavedChanges() && !this.deployedSuccessfully) {
@@ -347,7 +373,6 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
     this.showLeaveConfirm.set(false);
     const url = this.pendingNavUrl ?? '/definitions';
     this.pendingNavUrl = null;
-    // Bypass guard for this navigation
     this.hasUnsavedChanges.set(false);
     this.router.navigateByUrl(url);
   }
@@ -366,17 +391,22 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
     }
 
     try {
-      const { xml } = await this.modeler.saveXML({ format: true });
+      // Get raw canvas XML, then inject gateways for backend
+      const { xml: rawXml } = await this.modeler.saveXML({ format: true });
+      const backendXml = BpmnXmlTransformer.toBackendXml(rawXml);
+
       if (this.isEditMode() && this.originalXml) {
-        if (BpmnDiffUtil.isIdentical(this.originalXml, xml)) {
-          this.toast.warning('No changes detected', 'Make changes before deploying.');
+        if (BpmnDiffUtil.isIdentical(this.originalXml, backendXml)) {
+          this.toast.warning('No changes detected', 'Make some changes before deploying.');
           return;
         }
       }
-      this.currentXml.set(xml);
+
+      this.currentXml.set(backendXml);
       this.showDeployModal.set(true);
-    } catch {
-      this.toast.error('Failed', 'Could not read BPMN XML.');
+    } catch (err) {
+      console.error('Deploy modal error:', err);
+      this.toast.error('Failed', 'Could not read workflow data.');
     }
   }
 
@@ -393,7 +423,6 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
           `Key: ${res.data.workflow_key} · v${res.data.version}`,
         );
         this.showDeployModal.set(false);
-        // Mark as deployed so navigation guard doesn't fire
         this.deployedSuccessfully = true;
         this.hasUnsavedChanges.set(false);
         this.router.navigate(['/definitions']);
@@ -406,12 +435,10 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   onDeployCancel(): void { this.showDeployModal.set(false); }
-
   onValidationModalClose(): void { this.showValidationModal.set(false); }
 
   // ── Canvas controls ───────────────────────────────────────
 
-  /** Kept for backward-compat if called elsewhere; now delegates to openResetConfirm */
   resetDiagram(): void { this.openResetConfirm(); }
 
   zoomFit(): void { this.modeler?.get('canvas').zoom('fit-viewport'); }
@@ -419,20 +446,18 @@ export class WorkflowDesignerComponent implements OnInit, AfterViewInit, OnDestr
   async exportXml(): Promise<void> {
     if (!this.modeler) return;
     try {
-      const { xml } = await this.modeler.saveXML({ format: true });
+      // Export with gateways injected so the XML is backend-compatible
+      const { xml: rawXml } = await this.modeler.saveXML({ format: true });
+      const xml = BpmnXmlTransformer.toBackendXml(rawXml);
+
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([xml], { type: 'application/xml' }));
       a.download = `workflow-${this.editKey() || 'new'}-${Date.now()}.bpmn`;
       a.click();
     } catch {
-      this.toast.error('Export failed', 'Could not export BPMN XML.');
+      this.toast.error('Export failed', 'Could not export workflow.');
     }
   }
 
   ngOnDestroy(): void { this.modeler?.destroy(); }
 }
-
-
-
-
-

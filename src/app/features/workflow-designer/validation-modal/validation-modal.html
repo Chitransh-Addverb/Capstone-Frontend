@@ -3,25 +3,28 @@
 
     <div class="modal-header">
       <div class="modal-header-left">
-        <div class="modal-icon" [class.has-warnings]="warnings.length > 0 && errors.length === 0">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+        <div class="modal-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
                stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <path d="M8 2l6 12H2L8 2z"/>
-            <path d="M8 7v3M8 12h.01"/>
+            <path d="M9 2l7.5 14H1.5L9 2z"/>
+            <path d="M9 8v4M9 14h.01"/>
           </svg>
         </div>
         <div>
           <h2 class="modal-title">
-            {{ errors.length > 0 ? 'Workflow has errors' : 'Workflow has warnings' }}
+            {{ errors.length > 0 ? 'Something is missing or wrong' : 'Please check these warnings' }}
           </h2>
           <p class="modal-subtitle">
-            Fix all errors before deploying.
+            {{ errors.length > 0
+              ? 'Please fix the problems listed below before saving.'
+              : 'Your workflow has some warnings. You may want to review them.'
+            }}
           </p>
         </div>
       </div>
       <button class="modal-close-btn" (click)="close.emit()">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-             stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M1 1l12 12M13 1L1 13"/>
         </svg>
       </button>
@@ -29,43 +32,39 @@
 
     <div class="modal-body">
 
-      <!-- Errors -->
       @if (errors.length > 0) {
         <div class="validation-section">
           <div class="validation-section-header error">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <circle cx="6" cy="6" r="5"/>
-              <path d="M6 4v2.5M6 8.5h.01"/>
+              <circle cx="6.5" cy="6.5" r="5.5"/>
+              <path d="M6.5 4.5v3M6.5 9h.01"/>
             </svg>
-            {{ errors.length }} Error{{ errors.length !== 1 ? 's' : '' }}
+            {{ errors.length }} Problem{{ errors.length !== 1 ? 's' : '' }} found
           </div>
           @for (err of errors; track err.rule + err.elementId) {
             <div class="validation-item error">
-              <div class="validation-item-rule">{{ err.rule }}</div>
               <p class="validation-item-msg">{{ err.message }}</p>
               @if (err.elementId) {
-                <span class="validation-item-id">{{ err.elementId }}</span>
+                <span class="validation-item-id">Item ID: {{ err.elementId }}</span>
               }
             </div>
           }
         </div>
       }
 
-      <!-- Warnings -->
       @if (warnings.length > 0) {
         <div class="validation-section">
           <div class="validation-section-header warning">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M6 1l5 10H1L6 1z"/>
-              <path d="M6 5v2.5M6 9h.01"/>
+              <path d="M6.5 1l6 11H.5L6.5 1z"/>
+              <path d="M6.5 5.5v3M6.5 10h.01"/>
             </svg>
             {{ warnings.length }} Warning{{ warnings.length !== 1 ? 's' : '' }}
           </div>
           @for (warn of warnings; track warn.rule + warn.elementId) {
             <div class="validation-item warning">
-              <div class="validation-item-rule">{{ warn.rule }}</div>
               <p class="validation-item-msg">{{ warn.message }}</p>
             </div>
           }
@@ -75,8 +74,8 @@
     </div>
 
     <div class="modal-footer">
-      <button class="btn btn-primary btn-sm" (click)="close.emit()">
-        Back to Editor
+      <button class="btn btn-primary" (click)="close.emit()">
+        Go back and fix
       </button>
     </div>
 
